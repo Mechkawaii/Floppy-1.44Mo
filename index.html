@@ -303,6 +303,66 @@
   }
   .info-key { color: #5a2d82; font-weight: bold; }
   .sep { height: 2px; background: var(--win-darker); box-shadow: 0 1px 0 var(--win-white); margin: 4px 6px; }
+
+  /* ══ MOBILE ══ */
+  @media (max-width: 700px) {
+    body { overflow-y: auto; overflow-x: hidden; }
+
+    #win-main {
+      position: static !important;
+      transform: none !important;
+      left: auto !important; top: auto !important;
+      width: 100vw !important;
+      border-left: none; border-right: none; border-top: none;
+      box-shadow: none;
+    }
+    .win-titlebar { font-size: 17px; height: 28px; }
+
+    /* Colonne : grille au-dessus, panneau en dessous */
+    .main-body { flex-direction: column !important; }
+
+    .grid-col {
+      padding: 5px !important;
+      width: 100% !important;
+    }
+
+    .right-panel {
+      width: 100% !important;
+      max-height: none !important;
+      border-left: none !important;
+      border-top: 2px solid var(--win-darker);
+    }
+
+    #disk-grid { gap: 1px; padding: 2px; }
+    .coord-x { font-size: 9px; }
+    .coord-y  { font-size: 9px; width: 14px; }
+
+    .score-display { font-size: 17px; padding: 4px 8px; }
+    .grid-header   { font-size: 15px; padding: 3px 8px; }
+    .action-row    { gap: 4px; padding: 4px; }
+    .action-btn    { font-size: 15px; padding: 3px 8px; height: 28px; }
+    .status-bar    { font-size: 14px; padding: 3px 6px; }
+
+    .logo-area  { padding: 8px; }
+    .logo-img   { width: 60px; height: 60px; }
+    .logo-title { font-size: 22px; }
+    .logo-sub   { display: none; }
+
+    .pieces-scroll { max-height: none; flex-direction: row; flex-wrap: wrap; }
+
+    .taskbar { height: 32px; }
+    .start-btn, .taskbar-item { font-size: 14px; padding: 2px 8px; height: 24px; }
+    .taskbar-clock { font-size: 14px; }
+
+    #win-info {
+      width: 90vw !important;
+      left: 5vw !important;
+      top: 60px !important;
+      position: fixed !important;
+    }
+    .win-titlebar { cursor: default; }
+  }
+
 </style>
 </head>
 <body>
@@ -325,10 +385,10 @@
     <button class="add-player-btn" onclick="addPlayer()">+ Joueur</button>
   </div>
 
-  <div style="display:flex;">
+  <div class="main-body" style="display:flex;">
 
     <!-- ── LEFT : GRILLE ── -->
-    <div style="padding:10px;flex:0 0 auto;">
+    <div class="grid-col" style="padding:10px;flex:0 0 auto;">
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <span style="font-family:'VT323',monospace;font-size:19px;font-weight:bold;color:var(--txt);">
@@ -880,6 +940,41 @@ function makeDraggable(win,handle){
 }
 
 // ═══════════════════════════════
+// MOBILE : taille dynamique des cellules
+// ═══════════════════════════════
+function applyMobileGrid() {
+  const isMobile = window.innerWidth <= 700;
+  const grid = document.getElementById('disk-grid');
+  const coordsX = document.getElementById('grid-x-coords');
+  const coordsY = document.getElementById('grid-y-coords');
+
+  if (isMobile) {
+    // Available width: screen - padding(10px) - coord-y(14px) - borders/gap
+    const available = window.innerWidth - 10 - 14 - 24; // margins + borders
+    const cellSize = Math.floor((available - 13) / 12); // 12 cols + gaps
+    const cs = Math.max(20, Math.min(cellSize, 46));
+
+    grid.style.gridTemplateColumns = `repeat(12, ${cs}px)`;
+    grid.style.gridTemplateRows    = `repeat(12, ${cs}px)`;
+
+    document.querySelectorAll('.cell').forEach(c => {
+      c.style.width = cs + 'px';
+      c.style.height = cs + 'px';
+    });
+    document.querySelectorAll('.coord-x').forEach(c => c.style.width  = cs + 'px');
+    document.querySelectorAll('.coord-y').forEach(c => c.style.height = cs + 'px');
+  } else {
+    // Reset to desktop sizes
+    grid.style.gridTemplateColumns = 'repeat(12, 46px)';
+    grid.style.gridTemplateRows    = 'repeat(12, 46px)';
+    document.querySelectorAll('.cell').forEach(c => { c.style.width='46px'; c.style.height='46px'; });
+    document.querySelectorAll('.coord-x').forEach(c => c.style.width  = '46px');
+    document.querySelectorAll('.coord-y').forEach(c => c.style.height = '46px');
+  }
+}
+window.addEventListener('resize', applyMobileGrid);
+
+// ═══════════════════════════════
 // INIT
 // ═══════════════════════════════
 function init(){
@@ -888,6 +983,7 @@ function init(){
   renderTabs(); renderGrid(); renderPiecesPanel(); renderAllScores(); updateStatusBar();
   makeDraggable(document.getElementById('win-main'),  document.getElementById('main-titlebar'));
   makeDraggable(document.getElementById('win-info'),   document.getElementById('info-titlebar'));
+  applyMobileGrid();
 }
 init();
 </script>
