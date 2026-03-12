@@ -16,7 +16,7 @@ Un jeu de société original de **Valentin HEYNE** — © 2026 Le Cartel du Dé 
 
 Chaque joueur gère sa **disquette personnelle (grille 12×12)**. Le but du jeu est d'y enregistrer **exactement 144 fichiers** en les récupérant dans le Dossier commun.
 
-L'application remplace les disquettes physiques : place tes blocs de fichiers dans ta grille comme un Tetris, gère ton espace, et sois le premier à atteindre 144 Mo !
+L'application remplace les disquettes physiques : place tes blocs de fichiers dans ta grille comme un Tetris, gère ton espace, et sois le premier à atteindre 1.44 Mo !
 
 ---
 
