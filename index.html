@@ -5,401 +5,314 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Floppy 1.44Mo</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
   :root {
-    --win-bg: #b8b8c8;
-    --win-gray: #c8c8d8;
-    --win-panel: #c0c0d0;
-    --win-dark: #7070a0;
-    --win-darker: #2a2040;
-    --win-white: #e8e4f8;
-    --win-black: #000000;
-    --win-title: #5545a0;
-    --win-title2: #8070cc;
+    --win-panel:   #c0c0d0;
+    --win-dark:    #7070a0;
+    --win-darker:  #2a2040;
+    --win-white:   #e8e4f8;
+    --win-title:   #5545a0;
     --win-menubar: #d0cce8;
-    --win-pink: #f5eef8;
-    --win-content: #f0ecfa;
-    --grid-empty: #1a0a2e;
+    --win-content: #f5eef8;
+    --grid-bg:     #fcebf3;
+    --grid-line:   #d8a8c8;
+    --grid-border: #c090b0;
+    --txt:         #1a0a3a;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     font-family: 'VT323', monospace;
-    background: var(--win-bg);
     min-height: 100vh;
     overflow: hidden;
     cursor: default;
-    background-image:
-      repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,255,255,0.04) 1px, rgba(255,255,255,0.04) 2px),
-      repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(255,255,255,0.04) 1px, rgba(255,255,255,0.04) 2px);
+    background: #b0a8c8 url('background.png') center/cover no-repeat;
   }
 
-  /* TASKBAR */
+  /* ── TASKBAR ── */
   .taskbar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    height: 30px;
-    background: var(--win-panel);
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 36px; background: var(--win-panel);
     border-top: 2px solid var(--win-white);
-    display: flex;
-    align-items: center;
-    padding: 2px 4px;
-    gap: 4px;
+    display: flex; align-items: center; padding: 2px 6px; gap: 6px;
     z-index: 1000;
     box-shadow: inset -1px -1px var(--win-dark), inset 1px 1px var(--win-white);
   }
-  .start-btn {
-    background: var(--win-panel);
-    border-top: 2px solid var(--win-white);
-    border-left: 2px solid var(--win-white);
-    border-right: 2px solid var(--win-darker);
-    border-bottom: 2px solid var(--win-darker);
-    font-family: 'VT323', monospace;
-    font-size: 15px;
-    font-weight: bold;
-    padding: 1px 10px;
-    cursor: pointer;
-    height: 24px;
-    display: flex; align-items: center; gap: 4px;
-    color: #1a0a3a;
+  .start-btn, .taskbar-item {
+    font-family: 'VT323', monospace; font-size: 18px; color: var(--txt);
+    background: var(--win-panel); padding: 2px 12px; height: 28px;
+    display: flex; align-items: center; gap: 5px; cursor: pointer;
+    border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker);
   }
+  .start-btn { font-weight: bold; }
   .taskbar-clock {
-    margin-left: auto;
-    font-family: 'VT323', monospace;
-    font-size: 15px;
-    padding: 2px 10px;
-    border: 1px solid var(--win-dark);
-    box-shadow: inset 1px 1px var(--win-dark);
-    background: var(--win-panel);
-    color: #1a0a3a;
-  }
-  .taskbar-item {
-    background: var(--win-panel);
-    border-top: 2px solid var(--win-darker);
-    border-left: 2px solid var(--win-darker);
-    border-right: 2px solid var(--win-white);
-    border-bottom: 2px solid var(--win-white);
-    font-family: 'VT323', monospace;
-    font-size: 14px;
-    padding: 1px 8px;
-    height: 24px;
-    display: flex; align-items: center; gap: 4px;
-    cursor: pointer;
-    color: #1a0a3a;
+    margin-left: auto; font-family: 'VT323', monospace; font-size: 18px; color: var(--txt);
+    padding: 2px 12px; background: var(--win-panel);
+    border: 1px solid var(--win-dark); box-shadow: inset 1px 1px var(--win-dark);
   }
 
-  /* WINDOW BASE */
+  /* ── WINDOW ── */
   .win {
-    position: absolute;
-    background: var(--win-panel);
+    position: absolute; background: var(--win-panel);
     border: 3px solid var(--win-darker);
-    box-shadow: 3px 3px 0 var(--win-black);
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
   }
   .win-titlebar {
-    background: var(--win-title);
-    color: #ede8ff;
-    font-family: 'VT323', monospace;
-    font-size: 16px;
-    font-weight: bold;
-    padding: 3px 6px;
+    background: var(--win-title); color: #ede8ff;
+    font-family: 'VT323', monospace; font-size: 20px; font-weight: bold;
+    padding: 4px 8px; height: 32px;
     display: flex; align-items: center; justify-content: space-between;
-    cursor: move;
-    user-select: none;
-    height: 26px;
+    cursor: move; user-select: none;
     border-bottom: 2px solid var(--win-darker);
   }
-  .win-title-text { display: flex; align-items: center; gap: 6px; }
-  .win-controls { display: flex; gap: 3px; }
+  .win-title-text { display: flex; align-items: center; gap: 8px; }
+  .win-controls { display: flex; gap: 4px; }
   .win-btn {
-    width: 18px; height: 16px;
-    background: var(--win-panel);
-    border-top: 1px solid var(--win-white);
-    border-left: 1px solid var(--win-white);
-    border-right: 1px solid var(--win-darker);
-    border-bottom: 1px solid var(--win-darker);
-    font-size: 11px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    color: #1a0a3a;
-    font-weight: bold;
-    line-height: 1;
+    width: 20px; height: 18px; background: var(--win-panel);
+    border-top: 1px solid var(--win-white); border-left: 1px solid var(--win-white);
+    border-right: 1px solid var(--win-darker); border-bottom: 1px solid var(--win-darker);
+    font-size: 12px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--txt); font-weight: bold;
   }
   .win-btn.close:hover { background: #c00000; color: white; }
   .win-menubar {
-    background: var(--win-menubar);
-    padding: 1px 4px;
-    font-family: 'VT323', monospace;
-    font-size: 15px;
-    border-bottom: 2px solid var(--win-darker);
-    display: flex; gap: 8px;
-    color: #1a0a3a;
+    background: var(--win-menubar); padding: 2px 6px;
+    font-family: 'VT323', monospace; font-size: 18px; color: var(--txt);
+    border-bottom: 2px solid var(--win-darker); display: flex; gap: 10px;
   }
-  .win-menubar span { padding: 1px 4px; cursor: pointer; }
+  .win-menubar span { padding: 1px 5px; cursor: pointer; }
   .win-menubar span:hover { background: var(--win-title); color: #ede8ff; }
 
-  /* SCROLLBAR */
-  ::-webkit-scrollbar { width: 16px; height: 16px; }
+  /* ── SCROLLBARS ── */
+  ::-webkit-scrollbar { width: 18px; height: 18px; }
   ::-webkit-scrollbar-track { background: #a0a0b8; }
   ::-webkit-scrollbar-thumb {
     background: var(--win-panel);
-    border-top: 2px solid var(--win-white);
-    border-left: 2px solid var(--win-white);
-    border-right: 2px solid var(--win-darker);
-    border-bottom: 2px solid var(--win-darker);
+    border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker);
   }
   ::-webkit-scrollbar-button {
     background: var(--win-panel);
-    border-top: 2px solid var(--win-white);
-    border-left: 2px solid var(--win-white);
-    border-right: 2px solid var(--win-darker);
-    border-bottom: 2px solid var(--win-darker);
-    display: flex; align-items: center; justify-content: center;
-    color: #1a0a3a; font-size: 8px;
+    border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker);
   }
 
-  /* MAIN WINDOW */
-  #win-main { top: 10px; left: 50%; transform: translateX(-50%); width: 1040px; }
+  /* ── MAIN WINDOW ── */
+  #win-main { top: 10px; left: 50%; transform: translateX(-50%); }
 
-  /* GRID */
-  .disk-container {
-    background: var(--grid-empty);
-    padding: 4px;
-    border-top: 2px solid var(--win-darker);
-    border-left: 2px solid var(--win-darker);
-    border-right: 2px solid var(--win-white);
+  /* ── PLAYER TABS ── */
+  .tabs-row {
+    display: flex; align-items: flex-end;
+    background: var(--win-panel); padding: 5px 5px 0; gap: 3px;
     border-bottom: 2px solid var(--win-white);
   }
+  .player-tab {
+    font-family: 'VT323', monospace; font-size: 18px; color: var(--txt);
+    padding: 3px 18px; cursor: pointer; background: #a8a8c0;
+    border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker);
+  }
+  .player-tab.active { background: var(--win-panel); border-bottom: 2px solid var(--win-panel); z-index:1; }
+  .player-tab:hover:not(.active) { background: #b8b8d0; }
+
+  /* ── GRID ── */
+  .disk-container {
+    background: var(--grid-bg); padding: 10px;
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
+  }
   .grid-header {
-    font-family: 'VT323', monospace;
-    font-size: 14px;
-    color: #00ff88;
-    background: #0a0018;
-    padding: 2px 8px;
-    margin-bottom: 4px;
+    font-family: 'VT323', monospace; font-size: 20px; color: #8a2060;
+    background: #f0d8ea; padding: 4px 12px; margin-bottom: 8px;
     display: flex; justify-content: space-between;
-    border-bottom: 1px solid #00ff88;
+    border-bottom: 2px solid #c060a0;
   }
   #disk-grid {
     display: grid;
-    grid-template-columns: repeat(12, 34px);
-    grid-template-rows: repeat(12, 34px);
-    gap: 1px;
-    background: #0f0520;
-    padding: 4px;
-    border: 1px solid #3a2060;
+    grid-template-columns: repeat(12, 46px);
+    grid-template-rows: repeat(12, 46px);
+    gap: 2px; background: var(--grid-line);
+    padding: 4px; border: 2px solid var(--grid-border);
   }
   .cell {
-    width: 34px; height: 34px;
-    background: #1a0a2e;
-    border: 1px solid #2a1050;
-    cursor: pointer;
-    transition: background 0.08s;
-    position: relative;
+    width: 46px; height: 46px;
+    background: var(--grid-bg); border: 1px solid #d0a8c0;
+    cursor: pointer; transition: background 0.08s; position: relative;
   }
-  .cell:hover { background: #2a1060; border-color: #6040a0; }
+  .cell:hover:not(.filled) { background: #f0d0e8; border-color: #a060a0; }
   .cell.filled { cursor: grab; }
-  .cell.filled:active { cursor: grabbing; }
-  .cell.highlight { background: #2a4060 !important; border-color: #40a0ff !important; }
-  .cell.invalid { background: #3a0010 !important; border-color: #ff0040 !important; }
-  .cell.moving { background: #3a2a00 !important; border-color: #ffcc00 !important; opacity: 0.7; }
+  .cell.highlight { background: #c8f0d0 !important; border-color: #40b060 !important; }
+  .cell.invalid   { background: #f8d0d8 !important; border-color: #e04060 !important; }
+  .cell.move-source   { outline: 3px solid #e0a800; outline-offset: -3px; cursor: grab; }
+  .cell.rotate-source { outline: 3px solid #a040ff; outline-offset: -3px; cursor: alias; }
 
   /* Block colors */
-  .color-0 { background: #5a2d82; border-color: #8040c0; }
-  .color-1 { background: #1a4a8a; border-color: #2060c0; }
-  .color-2 { background: #1a6a3a; border-color: #20a060; }
-  .color-3 { background: #6a3a1a; border-color: #c06020; }
-  .color-4 { background: #1a5a5a; border-color: #20a0a0; }
-  .color-5 { background: #5a5a1a; border-color: #a0a020; }
-  .color-6 { background: #3a1a6a; border-color: #6030c0; }
+  .color-0 { background: #8040b0; border-color: #b060e0; }
+  .color-1 { background: #3060a8; border-color: #5090d0; }
+  .color-2 { background: #208858; border-color: #30c080; }
+  .color-3 { background: #b85020; border-color: #e07030; }
+  .color-4 { background: #208898; border-color: #30c0c0; }
+  .color-5 { background: #888020; border-color: #c0b030; }
+  .color-6 { background: #a82060; border-color: #d04090; }
 
-  /* PIECES PANEL */
-  .piece-section-title {
-    font-family: 'VT323', monospace;
-    font-size: 14px;
-    color: #1a0a3a;
-    padding: 2px 4px;
-    border-bottom: 1px solid var(--win-dark);
-    margin-bottom: 4px;
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    display: flex; flex-direction: column;
+    width: 280px; border-left: 2px solid var(--win-darker);
+    background: var(--win-panel); overflow-y: auto; max-height: calc(100vh - 80px);
+  }
+  .logo-area {
+    background: #0a0018; padding: 12px 8px; text-align: center;
+    border-bottom: 2px solid var(--win-darker);
+  }
+  .logo-img { width: 110px; height: 110px; object-fit: contain; display: block; margin: 0 auto; }
+  .logo-title { font-family: 'VT323', monospace; font-size: 30px; color: #e8d8ff; letter-spacing: 3px; margin-top: 4px; }
+  .logo-sub { font-family: 'VT323', monospace; font-size: 14px; color: #9070c0; }
+
+  .panel-section-title {
+    font-family: 'VT323', monospace; font-size: 18px; color: var(--txt);
+    padding: 5px 8px; border-bottom: 1px solid var(--win-dark);
+    background: var(--win-menubar);
   }
   .pieces-scroll {
-    background: var(--win-content);
-    border-top: 2px solid var(--win-darker);
-    border-left: 2px solid var(--win-darker);
-    border-right: 2px solid var(--win-white);
-    border-bottom: 2px solid var(--win-white);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 380px;
-    overflow-y: auto;
+    background: var(--win-content); margin: 6px; padding: 8px;
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 320px; overflow-y: auto;
   }
-  .piece-row { display: flex; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
+  .piece-row { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
   .piece-preview {
-    display: grid;
-    gap: 1px;
-    cursor: pointer;
-    padding: 4px;
-    border-top: 2px solid var(--win-white);
-    border-left: 2px solid var(--win-white);
-    border-right: 2px solid var(--win-darker);
-    border-bottom: 2px solid var(--win-darker);
+    display: grid; gap: 1px; cursor: pointer; padding: 5px; margin: 2px;
+    border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker);
     background: var(--win-panel);
-    margin: 2px;
   }
   .piece-preview:hover { background: #d8d4f0; }
   .piece-preview.selected {
-    border-top: 2px solid var(--win-darker);
-    border-left: 2px solid var(--win-darker);
-    border-right: 2px solid var(--win-white);
-    border-bottom: 2px solid var(--win-white);
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
     background: #c8c0f0;
   }
-  .p-cell { width: 12px; height: 12px; background: #b8b4d0; }
-  .p-cell.on { border: 1px solid rgba(255,255,255,0.3); }
+  .p-cell { width: 14px; height: 14px; background: #ccc8e0; }
+  .p-cell.on { border: 1px solid rgba(255,255,255,0.4); }
 
-  /* SCORE */
+  .selected-piece-display {
+    background: #f0d8ea; color: #6a1040;
+    font-family: 'VT323', monospace; font-size: 18px;
+    padding: 5px 10px; margin: 0 6px;
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
+    min-height: 30px;
+  }
+  .scores-box {
+    background: var(--win-content); margin: 6px; padding: 6px;
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
+    font-family: 'VT323', monospace; font-size: 16px; color: var(--txt); min-height: 50px;
+  }
+  .tools-box {
+    background: var(--win-content); margin: 0 6px 6px; padding: 6px;
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+
+  /* ── SCORE ── */
   .score-display {
-    background: #0a0018;
-    color: #00ff88;
-    font-family: 'VT323', monospace;
-    font-size: 20px;
-    padding: 6px 10px;
-    border-top: 2px solid var(--win-darker);
-    border-left: 2px solid var(--win-darker);
-    border-right: 2px solid var(--win-white);
-    border-bottom: 2px solid var(--win-white);
-    margin: 4px 0;
+    background: #f0d8ea; color: #6a1040;
+    font-family: 'VT323', monospace; font-size: 22px; padding: 6px 12px; margin: 6px 0 0;
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
   }
   .score-bar {
-    height: 18px;
-    background: #0a0018;
-    border-top: 2px solid var(--win-darker);
-    border-left: 2px solid var(--win-darker);
-    border-right: 2px solid var(--win-white);
-    border-bottom: 2px solid var(--win-white);
+    height: 20px; background: #e0c0d8;
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
     position: relative; overflow: hidden;
   }
-  .score-fill {
-    height: 100%;
-    background: linear-gradient(to right, #5a2d82, #00ff88);
-    transition: width 0.3s;
-  }
+  .score-fill { height: 100%; background: linear-gradient(to right, #8040b0, #e060a0); transition: width 0.3s; }
 
-  /* PLAYER TABS */
-  .player-tab {
-    font-family: 'VT323', monospace;
-    font-size: 15px;
-    padding: 2px 14px;
-    cursor: pointer;
-    background: #a8a8c0;
-    border-top: 2px solid var(--win-white);
-    border-left: 2px solid var(--win-white);
-    border-right: 2px solid var(--win-darker);
-    border-bottom: 2px solid var(--win-darker);
-    color: #1a0a3a;
-  }
-  .player-tab.active { background: var(--win-panel); border-bottom: 2px solid var(--win-panel); z-index:1; color: #1a0a3a; }
-  .player-tab:hover:not(.active) { background: #b8b8d0; }
-
-  /* BUTTONS */
+  /* ── BUTTONS ── */
   .action-btn {
-    font-family: 'VT323', monospace;
-    font-size: 15px;
-    padding: 3px 10px;
-    cursor: pointer;
-    background: var(--win-panel);
-    border-top: 2px solid var(--win-white);
-    border-left: 2px solid var(--win-white);
-    border-right: 2px solid var(--win-darker);
-    border-bottom: 2px solid var(--win-darker);
-    height: 26px;
-    display: flex; align-items: center; gap: 4px;
-    color: #1a0a3a;
+    font-family: 'VT323', monospace; font-size: 18px; color: var(--txt);
+    padding: 4px 14px; cursor: pointer; background: var(--win-panel);
+    border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker);
+    height: 32px; display: flex; align-items: center; gap: 5px;
   }
-  .action-btn:active {
-    border-top: 2px solid var(--win-darker);
-    border-left: 2px solid var(--win-darker);
-    border-right: 2px solid var(--win-white);
-    border-bottom: 2px solid var(--win-white);
+  .action-btn:active, .action-btn.active {
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
+    background: #b0b0c8;
   }
-  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .action-btn.danger { color: #880000; }
+  .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .action-btn.danger  { color: #880000; }
   .action-btn.success { color: #004400; font-weight: bold; }
   .add-player-btn {
-    font-family: 'VT323', monospace;
-    font-size: 15px;
-    padding: 2px 10px;
-    cursor: pointer;
-    background: var(--win-panel);
-    border-top: 2px solid var(--win-white);
-    border-left: 2px solid var(--win-white);
-    border-right: 2px solid var(--win-darker);
-    border-bottom: 2px solid var(--win-darker);
-    color: #1a4400;
+    font-family: 'VT323', monospace; font-size: 18px; color: #1a4400;
+    padding: 3px 14px; cursor: pointer; background: var(--win-panel);
+    border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker);
   }
 
-  /* ACTION ROW */
-  .action-row { display: flex; gap: 4px; padding: 4px; background: var(--win-panel); border-top: 1px solid var(--win-dark); flex-wrap: wrap; }
-  .status-bar { background: var(--win-menubar); border-top: 2px solid var(--win-darker); font-family: 'VT323', monospace; font-size: 14px; padding: 2px 6px; display: flex; gap: 8px; color: #1a0a3a; }
-  .status-section { border-right: 1px solid var(--win-dark); padding-right: 8px; }
-  .sep { height: 2px; background: var(--win-darker); box-shadow: 0 1px 0 var(--win-white); margin: 4px 2px; }
-  .selected-piece-display { background: #0a0018; color: #c8b8ff; font-family: 'VT323', monospace; font-size: 15px; padding: 4px 8px; border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker); border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white); margin: 4px; min-height: 24px; }
+  /* ── ACTION ROW ── */
+  .action-row {
+    display: flex; gap: 6px; padding: 6px;
+    background: var(--win-panel); border-top: 1px solid var(--win-dark); flex-wrap: wrap;
+  }
+  .status-bar {
+    background: var(--win-menubar); border-top: 2px solid var(--win-darker);
+    font-family: 'VT323', monospace; font-size: 17px; padding: 4px 10px;
+    display: flex; gap: 12px; color: var(--txt); flex-wrap: wrap;
+  }
+  .status-section { border-right: 1px solid var(--win-dark); padding-right: 12px; }
 
-  /* VICTORY */
-  #victory-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; width: 380px; }
-  #victory-modal.show { display: block; }
-  .victory-content { background: var(--win-panel); padding: 10px; text-align: center; }
-  .victory-icon { font-size: 52px; margin: 8px 0; }
-  .victory-text { font-family: 'VT323', monospace; font-size: 24px; color: var(--win-black); margin: 8px 0; line-height: 1.3; }
-
-  /* INFO WINDOW */
-  #win-info { top: 40px; right: 20px; width: 260px; }
-  .info-body { background: var(--win-content); font-family: 'VT323', monospace; font-size: 14px; padding: 8px; line-height: 1.7; border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker); border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white); color: #1a0a3a; max-height: 220px; overflow-y: auto; }
-  .info-key { color: #5a2d82; font-weight: bold; }
-
-  /* LOGO WINDOW */
-  #win-logo { bottom: 40px; right: 20px; width: 170px; }
-  .logo-body { background: #0a0018; padding: 10px; text-align: center; border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker); border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white); }
-  .logo-img { width: 120px; height: 120px; object-fit: contain; display: block; margin: 0 auto; image-rendering: pixelated; }
-  .logo-fallback { font-family: 'VT323', monospace; font-size: 48px; color: #fff; display: block; line-height: 1; }
-  .logo-title { font-family: 'VT323', monospace; font-size: 22px; color: #00ff88; margin-top: 4px; letter-spacing: 2px; }
-  .logo-sub { font-family: 'VT323', monospace; font-size: 12px; color: #8060a0; margin-top: 2px; }
-
-  /* GRID COORDS */
-  .coord-num { width: 34px; font-family: 'VT323', monospace; font-size: 11px; color: #6040a0; text-align: center; }
-  .coord-num-y { height: 34px; font-family: 'VT323', monospace; font-size: 11px; color: #6040a0; display: flex; align-items: center; justify-content: flex-end; width: 18px; }
-  .progress-label { font-family: 'VT323', monospace; font-size: 13px; color: #333; text-align: right; padding: 0 4px; }
-
-  /* MOVE MODE */
-  .cell.move-source { outline: 2px solid #ffcc00; outline-offset: -2px; cursor: grab; }
-  .cell.move-target { background: #2a4020 !important; border-color: #60ff60 !important; }
-
-  /* DRAG GHOST */
-  #drag-ghost {
-    position: fixed;
-    pointer-events: none;
-    z-index: 9999;
+  /* ── MODE BAR ── */
+  .mode-bar {
+    font-family: 'VT323', monospace; font-size: 17px; padding: 4px 10px; margin-top: 4px;
     display: none;
-    opacity: 0.75;
-    gap: 1px;
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
   }
+  .mode-bar.move-mode   { background: #fff8c0; color: #806000; display: block; }
+  .mode-bar.rotate-mode { background: #f0e0ff; color: #5a0090; display: block; }
+
+  /* ── COORDS ── */
+  .coord-x { width: 46px; font-family: 'VT323', monospace; font-size: 13px; color: #b080c0; text-align: center; }
+  .coord-y { height: 46px; width: 22px; font-family: 'VT323', monospace; font-size: 13px; color: #b080c0; display: flex; align-items: center; justify-content: flex-end; }
+
+  /* ── VICTORY ── */
+  #victory-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 2000; width: 440px; }
+  #victory-modal.show { display: block; }
+  .victory-content { background: var(--win-panel); padding: 14px; text-align: center; }
+  .victory-icon { font-size: 64px; margin: 10px 0; }
+  .victory-text { font-family: 'VT323', monospace; font-size: 28px; color: var(--txt); margin: 10px 0; line-height: 1.3; }
+
+  /* ── INFO WINDOW ── */
+  #win-info { top: 50px; right: 20px; width: 310px; }
+  .info-body {
+    background: var(--win-content); font-family: 'VT323', monospace; font-size: 16px;
+    padding: 10px; line-height: 1.8; color: var(--txt);
+    border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
+    max-height: 320px; overflow-y: auto;
+  }
+  .info-key { color: #5a2d82; font-weight: bold; }
+  .sep { height: 2px; background: var(--win-darker); box-shadow: 0 1px 0 var(--win-white); margin: 4px 6px; }
 </style>
 </head>
 <body>
 
-<!-- DRAG GHOST -->
-<div id="drag-ghost"></div>
-
-<!-- MAIN WINDOW -->
+<!-- ══ MAIN WINDOW ══ -->
 <div class="win" id="win-main">
   <div class="win-titlebar" id="main-titlebar">
     <span class="win-title-text">💾 Floppy_1.44Mo.exe</span>
     <div class="win-controls">
-      <div class="win-btn">_</div>
-      <div class="win-btn">□</div>
+      <div class="win-btn">_</div><div class="win-btn">□</div>
       <div class="win-btn close" onclick="document.getElementById('win-main').style.display='none'">✕</div>
     </div>
   </div>
@@ -407,19 +320,23 @@
     <span>Fichier</span><span>Édition</span><span>Affichage</span><span>Aide</span>
   </div>
 
-  <!-- PLAYER TABS -->
-  <div style="display:flex; align-items:flex-end; background:var(--win-panel); padding:4px 4px 0; gap:2px; border-bottom:2px solid var(--win-white);">
-    <div id="player-tabs" style="display:flex; flex-wrap:wrap; gap:2px; flex:1;"></div>
+  <div class="tabs-row">
+    <div id="player-tabs" style="display:flex;flex-wrap:wrap;gap:3px;flex:1;"></div>
     <button class="add-player-btn" onclick="addPlayer()">+ Joueur</button>
   </div>
 
-  <div style="display:flex; background:var(--win-panel);">
+  <div style="display:flex;">
 
-    <!-- LEFT: GRID -->
-    <div style="flex:0 0 auto; padding:8px; background:var(--win-panel);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <span style="font-family:'VT323',monospace; font-size:15px; font-weight:bold; color:#1a0a3a;">c:/disquette/<span id="current-player-name">Joueur 1</span></span>
-        <span class="progress-label" style="color:#1a0a3a;">Fichiers: <span id="file-count-display" style="color:#5a2d82; font-weight:bold;">0</span>/144</span>
+    <!-- ── LEFT : GRILLE ── -->
+    <div style="padding:10px;flex:0 0 auto;">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-family:'VT323',monospace;font-size:19px;font-weight:bold;color:var(--txt);">
+          c:/disquette/<span id="current-player-name">Joueur 1</span>
+        </span>
+        <span style="font-family:'VT323',monospace;font-size:19px;color:var(--txt);">
+          Fichiers: <b id="file-count-display" style="color:#5a2d82;">0</b>/144
+        </span>
       </div>
 
       <div class="disk-container">
@@ -427,36 +344,31 @@
           <span>FLOPPY 1.44Mo — <span id="player-disk-label">Joueur 1</span></span>
           <span id="grid-status">PRÊT</span>
         </div>
-        <div style="display:flex; padding:0 4px 0 26px; background:#0f0520;">
-          <div id="grid-x-coords" style="display:flex; gap:1px;"></div>
+        <div style="display:flex;padding:0 4px 0 26px;background:var(--grid-bg);">
+          <div id="grid-x-coords" style="display:flex;gap:2px;"></div>
         </div>
-        <div style="display:flex; gap:4px; align-items:flex-start; background:#0f0520; padding:4px;">
-          <div id="grid-y-coords" style="display:flex; flex-direction:column; gap:1px;"></div>
+        <div style="display:flex;gap:4px;align-items:flex-start;background:var(--grid-bg);padding:4px;">
+          <div id="grid-y-coords" style="display:flex;flex-direction:column;gap:2px;"></div>
           <div id="disk-grid"></div>
         </div>
       </div>
 
-      <!-- SCORE -->
-      <div style="margin-top:6px;">
-        <div class="score-display">DONNÉES: <span id="score-value">0</span>/144 Mo &nbsp;|&nbsp; <span id="score-percent">0%</span></div>
-        <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
+      <div class="score-display">
+        DONNÉES: <span id="score-value">0</span>/144 Mo &nbsp;|&nbsp; <span id="score-percent">0%</span>
       </div>
+      <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
 
-      <!-- MODE INDICATOR -->
-      <div id="mode-indicator" style="font-family:'VT323',monospace; font-size:14px; background:#1a0a2e; color:#ffcc00; padding:3px 8px; margin-top:4px; display:none;">
-        ✋ MODE DÉPLACEMENT — Cliquez la pièce à déplacer, puis sa destination
-      </div>
+      <div class="mode-bar" id="mode-indicator"></div>
 
-      <!-- ACTIONS -->
       <div class="action-row">
         <button class="action-btn" onclick="rotateSelected()">↻ Rotation</button>
         <button class="action-btn" onclick="clearLastPlaced()">↩ Annuler</button>
         <button class="action-btn" id="move-mode-btn" onclick="toggleMoveMode()">✋ Déplacer</button>
+        <button class="action-btn" id="rotate-mode-btn" onclick="toggleRotateMode()">↻ Pivoter posée</button>
         <button class="action-btn danger" onclick="clearCurrentDisk()">🗑 Vider</button>
         <button class="action-btn" onclick="runDefrag()" id="defrag-btn">⚙ DEFRAG</button>
         <button class="action-btn success" id="backup-btn" onclick="toggleBackup()">💾 BACKUP</button>
       </div>
-
       <div class="status-bar">
         <span class="status-section" id="status-piece">Aucune pièce sélectionnée</span>
         <span class="status-section" id="status-backup">BACKUP: OFF</span>
@@ -464,29 +376,39 @@
       </div>
     </div>
 
-    <!-- RIGHT PANEL -->
-    <div style="flex:1; min-width:200px; max-width:240px; padding:6px; border-left:2px solid var(--win-darker);">
-      <div class="piece-section-title">📁 c:/blocs_fichiers</div>
+    <!-- ── RIGHT PANEL ── -->
+    <div class="right-panel">
+
+      <div class="logo-area">
+        <img src="logo.png" class="logo-img"
+             onerror="this.style.display='none';document.getElementById('logo-fb').style.display='block'">
+        <div id="logo-fb" style="font-size:70px;display:none;">💾</div>
+        <div class="logo-title">FLOPPY</div>
+        <div class="logo-sub">1,44 Mo. Pas un octet de plus.</div>
+      </div>
+
+      <div class="panel-section-title">📁 c:/blocs_fichiers</div>
       <div class="selected-piece-display" id="selected-piece-display">Cliquez une pièce ↓</div>
       <div class="pieces-scroll" id="pieces-panel"></div>
 
       <div class="sep"></div>
 
-      <div style="font-family:'VT323',monospace; font-size:14px; font-weight:bold; margin:4px 2px 2px; color:#1a0a3a;">🏆 Scores</div>
-      <div id="all-scores" style="background:var(--win-content); border-top:2px solid var(--win-darker); border-left:2px solid var(--win-darker); border-right:2px solid var(--win-white); border-bottom:2px solid var(--win-white); padding:4px; font-family:'VT323',monospace; font-size:14px; min-height:60px; color:#1a0a3a;"></div>
+      <div class="panel-section-title">🏆 Scores</div>
+      <div class="scores-box" id="all-scores"></div>
 
       <div class="sep"></div>
 
-      <div style="font-family:'VT323',monospace; font-size:14px; font-weight:bold; margin:4px 2px 2px; color:#1a0a3a;">⚙️ TOOLS (case plateau)</div>
-      <div style="display:flex; flex-direction:column; gap:3px; padding:4px; background:var(--win-content); border-top:2px solid var(--win-darker); border-left:2px solid var(--win-darker); border-right:2px solid var(--win-white); border-bottom:2px solid var(--win-white);">
-        <button class="action-btn" style="font-size:13px;" onclick="exchange5to1()">5×1 → 1×5</button>
-        <button class="action-btn" style="font-size:13px;" onclick="exchange2to1()">2×5 → 1×10</button>
+      <div class="panel-section-title">⚙️ TOOLS (case plateau)</div>
+      <div class="tools-box">
+        <button class="action-btn" onclick="exchange5to1()">5×1 → 1×5</button>
+        <button class="action-btn" onclick="exchange2to1()">2×5 → 1×10</button>
       </div>
+
     </div>
   </div>
 </div>
 
-<!-- INFO WINDOW -->
+<!-- ══ INFO WINDOW ══ -->
 <div class="win" id="win-info">
   <div class="win-titlebar" id="info-titlebar">
     <span class="win-title-text">ℹ️ Objectifs.doc</span>
@@ -502,9 +424,10 @@
     <span class="info-key">PIÈCES :</span><br>
     • 1 fichier (1 case)<br>
     • 5 fichiers : T, L, I<br>
-    • 10 fichiers : I, II<br><br>
-    <span class="info-key">DÉPLACER :</span><br>
-    Bouton ✋ puis clic source → clic destination.<br><br>
+    • 10 fichiers : I (1×10), II (2×5)<br><br>
+    <span class="info-key">MODES :</span><br>
+    ✋ Déplacer : clic pièce → clic destination<br>
+    ↻ Pivoter posée : clic pièce → pivote sur place<br><br>
     <span class="info-key">DEFRAG :</span><br>
     1× par partie. −5 fichiers.<br><br>
     <span class="info-key">TOOLS :</span><br>
@@ -512,24 +435,7 @@
   </div>
 </div>
 
-<!-- LOGO WINDOW -->
-<div class="win" id="win-logo">
-  <div class="win-titlebar" id="logo-titlebar">
-    <span class="win-title-text">Floppy_1.44Mo.exe</span>
-    <div class="win-controls">
-      <div class="win-btn close" onclick="document.getElementById('win-logo').style.display='none'">✕</div>
-    </div>
-  </div>
-  <div class="logo-body">
-    <img src="logo.png" class="logo-img" id="logo-img" alt="Floppy"
-         onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
-    <span class="logo-fallback" id="logo-fallback" style="display:none">💾</span>
-    <div class="logo-title">FLOPPY</div>
-    <div class="logo-sub">1,44 Mo. Pas un octet de plus.</div>
-  </div>
-</div>
-
-<!-- VICTORY -->
+<!-- ══ VICTORY ══ -->
 <div id="victory-modal" class="win">
   <div class="win-titlebar">
     <span class="win-title-text">🏆 victoire.txt</span>
@@ -539,622 +445,450 @@
   </div>
   <div class="victory-content">
     <div class="victory-icon">💾</div>
-    <div class="victory-text" id="victory-text">DISQUETTE PLEINE !<br>144/144 Mo enregistrés !</div>
-    <div style="margin:8px 0; display:flex; gap:4px; justify-content:center;">
+    <div class="victory-text" id="victory-text">VICTOIRE !<br>144/144 Mo enregistrés !</div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:10px;">
       <button class="action-btn success" onclick="document.getElementById('victory-modal').classList.remove('show')">OK</button>
       <button class="action-btn" onclick="resetAll()">Nouvelle partie</button>
     </div>
   </div>
 </div>
 
-<!-- TASKBAR -->
+<!-- ══ TASKBAR ══ -->
 <div class="taskbar">
   <button class="start-btn">🪟 START</button>
   <div class="taskbar-item" onclick="document.getElementById('win-main').style.display='block'">💾 Floppy_1.44Mo</div>
   <div class="taskbar-item" onclick="document.getElementById('win-info').style.display='block'">ℹ️ Objectifs.doc</div>
-  <div class="taskbar-item" onclick="document.getElementById('win-logo').style.display='block'">🖼 Logo</div>
   <div class="taskbar-clock" id="clock">22:10</div>
 </div>
 
 <script>
-// ===== PIÈCES CORRIGÉES =====
-// 5 fichiers forme L : 3 verticaux + 3 horizontaux avec 1 en commun (coin)
-// = 3 vers le bas + 2 à droite sur la dernière
-// Symétrique : forme de L classique 3x3
+// ═══════════════════════════════
+// PIÈCES
+// ═══════════════════════════════
 const PIECE_DEFS = [
-  { id: 'one_1',   name: '1 fichier',   size: 1,  shape: [[1]], color: 0 },
-  // 5 fichiers
-  { id: 'five_T',  name: '5 fich. T',   size: 5,
-    shape: [[1,1,1],
-            [0,1,0],
-            [0,1,0]], color: 1 },
-  // L : 3 verticaux + 3 horizontaux, 1 case en commun au coin
-  // Forme : colonne de 3 + ligne de 3 partageant le bas-gauche
-  //   X
-  //   X
-  //   X X X
-  { id: 'five_L',  name: '5 fich. L',   size: 5,
-    shape: [[1,0,0],
-            [1,0,0],
-            [1,1,1]], color: 2 },
-  { id: 'five_I',  name: '5 fich. I',   size: 5,
-    shape: [[1],[1],[1],[1],[1]], color: 3 },
-  // 10 fichiers
-  { id: 'ten_I',   name: '10 fich. I',  size: 10,
-    shape: [[1,1,1,1,1,1,1,1,1,1]], color: 4 },
-  { id: 'ten_II',  name: '10 fich. II', size: 10,
-    shape: [[1,1,1,1,1],
-            [1,1,1,1,1]], color: 5 },
+  { id:'one_1',  name:'1 fichier',   size:1,  shape:[[1]], color:0 },
+  { id:'five_T', name:'5 fich. T',   size:5,  shape:[[1,1,1],[0,1,0],[0,1,0]], color:1 },
+  { id:'five_L', name:'5 fich. L',   size:5,  shape:[[1,0,0],[1,0,0],[1,1,1]], color:2 },
+  { id:'five_I', name:'5 fich. I',   size:5,  shape:[[1],[1],[1],[1],[1]], color:3 },
+  { id:'ten_I',  name:'10 fich. I',  size:10, shape:[[1,1,1,1,1,1,1,1,1,1]], color:4 },
+  { id:'ten_II', name:'10 fich. II', size:10, shape:[[1,1,1,1,1],[1,1,1,1,1]], color:5 },
 ];
+const COLORS = ['#8040b0','#3060a8','#208858','#b85020','#208898','#888020','#a82060'];
 
-// ===== STATE =====
-const GRID_SIZE = 12;
-let players = [];
-let currentPlayerIdx = 0;
-let selectedPieceDef = null;
-let rotation = 0;
-let lastPlaced = null;
-
-// Move mode state
-let moveMode = false;
-let movingCells = null; // array of {r,c,color}
+// ═══════════════════════════════
+// ÉTAT
+// ═══════════════════════════════
+const GS = 12;
+let players = [], currentPlayerIdx = 0;
+let selectedPieceDef = null, rotation = 0, lastPlaced = null;
+let moveMode = false, rotateMode = false, movingCells = null;
 
 function createPlayer(name) {
-  return {
-    name,
-    grid: Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null)),
-    score: 0,
-    backupActive: false,
-    defragUsed: false,
-    lastPieceId: null,
-  };
+  return { name, score:0, backupActive:false, defragUsed:false, lastPieceId:null,
+           grid: Array(GS).fill(null).map(()=>Array(GS).fill(null)) };
 }
-
 function addPlayer() {
   if (players.length >= 6) return;
-  players.push(createPlayer('Joueur ' + (players.length + 1)));
-  renderTabs();
-  renderAllScores();
+  players.push(createPlayer('Joueur '+(players.length+1)));
+  renderTabs(); renderAllScores();
 }
 
-// ===== ROTATION =====
-function rotatePiece(shape) {
-  const rows = shape.length, cols = shape[0].length;
-  const ns = Array(cols).fill(null).map(() => Array(rows).fill(0));
-  for (let r = 0; r < rows; r++)
-    for (let c = 0; c < cols; c++)
-      ns[c][rows - 1 - r] = shape[r][c];
+// ═══════════════════════════════
+// ROTATION MATRICE
+// ═══════════════════════════════
+function rotateMat(s) {
+  const R=s.length,C=s[0].length,ns=Array(C).fill(null).map(()=>Array(R).fill(0));
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++) ns[c][R-1-r]=s[r][c];
   return ns;
 }
-
 function getRotatedShape() {
   if (!selectedPieceDef) return null;
-  let s = selectedPieceDef.shape;
-  for (let i = 0; i < rotation; i++) s = rotatePiece(s);
+  let s=selectedPieceDef.shape;
+  for(let i=0;i<rotation;i++) s=rotateMat(s);
   return s;
 }
-
 function rotateSelected() {
   if (!selectedPieceDef) return;
-  rotation = (rotation + 1) % 4;
-  renderPiecesPanel();
-  document.getElementById('selected-piece-display').textContent =
-    selectedPieceDef.name + ' | Rot: ' + (rotation * 90) + '°';
+  rotation=(rotation+1)%4; renderPiecesPanel();
+  document.getElementById('selected-piece-display').textContent=
+    selectedPieceDef.name+' | Rot: '+(rotation*90)+'°';
 }
 
-// ===== GRID BUILD =====
+// ═══════════════════════════════
+// GRILLE
+// ═══════════════════════════════
 function buildGrid() {
-  const grid = document.getElementById('disk-grid');
-  grid.innerHTML = '';
-  const xc = document.getElementById('grid-x-coords');
-  xc.innerHTML = '';
-  const yc = document.getElementById('grid-y-coords');
-  yc.innerHTML = '';
-
-  for (let c = 1; c <= GRID_SIZE; c++) {
-    const d = document.createElement('div');
-    d.className = 'coord-num';
-    d.textContent = c;
-    xc.appendChild(d);
-  }
-  for (let r = 1; r <= GRID_SIZE; r++) {
-    const d = document.createElement('div');
-    d.className = 'coord-num-y';
-    d.textContent = r;
-    yc.appendChild(d);
-  }
-
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.r = r;
-      cell.dataset.c = c;
-      cell.addEventListener('mouseenter', () => onCellHover(r, c));
-      cell.addEventListener('mouseleave', clearHighlight);
-      cell.addEventListener('click', () => onCellClick(r, c));
-      grid.appendChild(cell);
-    }
+  ['disk-grid','grid-x-coords','grid-y-coords'].forEach(id=>document.getElementById(id).innerHTML='');
+  const xc=document.getElementById('grid-x-coords');
+  for(let c=1;c<=GS;c++){const d=document.createElement('div');d.className='coord-x';d.textContent=c;xc.appendChild(d);}
+  const yc=document.getElementById('grid-y-coords');
+  for(let r=1;r<=GS;r++){const d=document.createElement('div');d.className='coord-y';d.textContent=r;yc.appendChild(d);}
+  const g=document.getElementById('disk-grid');
+  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++){
+    const el=document.createElement('div');
+    el.className='cell'; el.dataset.r=r; el.dataset.c=c;
+    el.addEventListener('mouseenter',()=>onHover(r,c));
+    el.addEventListener('mouseleave',clearHL);
+    el.addEventListener('click',()=>onClick(r,c));
+    g.appendChild(el);
   }
 }
+const $c=(r,c)=>document.querySelector(`#disk-grid .cell[data-r="${r}"][data-c="${c}"]`);
 
-function getCellEl(r, c) {
-  return document.querySelector(`#disk-grid .cell[data-r="${r}"][data-c="${c}"]`);
-}
-
-// ===== RENDER GRID =====
 function renderGrid() {
-  const p = players[currentPlayerIdx];
-  for (let r = 0; r < GRID_SIZE; r++) {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      const el = getCellEl(r, c);
-      if (!el) continue;
-      const val = p.grid[r][c];
-      el.className = 'cell';
-      if (val !== null) el.classList.add('filled', 'color-' + val);
-    }
+  const p=players[currentPlayerIdx];
+  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++){
+    const el=$c(r,c); if(!el) continue;
+    const v=p.grid[r][c]; el.className='cell';
+    if(v!==null) el.classList.add('filled','color-'+v);
   }
   updateScore();
 }
 
-// ===== HOVER =====
-function onCellHover(r, c) {
-  if (moveMode) {
-    if (movingCells) highlightMoveTarget(r, c);
-    return;
-  }
-  if (!selectedPieceDef) return;
-  clearHighlight();
-  const cells = getCellsForPiece(r, c);
-  const p = players[currentPlayerIdx];
-  let valid = cells.length > 0;
-  for (const [nr, nc] of cells) {
-    if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE || p.grid[nr][nc] !== null) {
-      valid = false; break;
-    }
-  }
-  for (const [nr, nc] of cells) {
-    const el = getCellEl(nr, nc);
-    if (el && p.grid[nr][nc] === null) el.classList.add(valid ? 'highlight' : 'invalid');
-  }
+// ═══════════════════════════════
+// HOVER
+// ═══════════════════════════════
+function onHover(r,c) {
+  if(moveMode&&movingCells){hlMoveTarget(r,c);return;}
+  if(!moveMode&&!rotateMode&&selectedPieceDef) hlPlace(r,c);
+}
+function clearHL() {
+  document.querySelectorAll('#disk-grid .cell.highlight,.cell.invalid').forEach(el=>el.classList.remove('highlight','invalid'));
+}
+function hlPlace(r,c) {
+  clearHL();
+  const cells=getCellsForPiece(r,c), p=players[currentPlayerIdx];
+  let ok=cells.length>0;
+  for(const[nr,nc]of cells) if(nr<0||nr>=GS||nc<0||nc>=GS||p.grid[nr][nc]!==null){ok=false;break;}
+  for(const[nr,nc]of cells){const el=$c(nr,nc);if(el&&p.grid[nr][nc]===null)el.classList.add(ok?'highlight':'invalid');}
+}
+function hlMoveTarget(r,c) {
+  clearHL(); if(!movingCells) return;
+  const p=players[currentPlayerIdx],dr=r-movingCells[0].r,dc=c-movingCells[0].c;
+  const tgt=movingCells.map(m=>({r:m.r+dr,c:m.c+dc}));
+  const src=new Set(movingCells.map(m=>`${m.r},${m.c}`));
+  let ok=true;
+  for(const t of tgt){if(t.r<0||t.r>=GS||t.c<0||t.c>=GS){ok=false;break;}if(p.grid[t.r][t.c]!==null&&!src.has(`${t.r},${t.c}`)){ok=false;break;}}
+  for(const t of tgt){const el=$c(t.r,t.c);if(el)el.classList.add(ok?'highlight':'invalid');}
 }
 
-function highlightMoveTarget(r, c) {
-  clearHighlight();
-  if (!movingCells) return;
-  const p = players[currentPlayerIdx];
-  const dr = r - movingCells[0].r;
-  const dc = c - movingCells[0].c;
-  let valid = true;
-  const targetCells = movingCells.map(mc => ({ r: mc.r + dr, c: mc.c + dc, color: mc.color }));
-  const srcSet = new Set(movingCells.map(mc => `${mc.r},${mc.c}`));
-  for (const tc of targetCells) {
-    if (tc.r < 0 || tc.r >= GRID_SIZE || tc.c < 0 || tc.c >= GRID_SIZE) { valid = false; break; }
-    if (p.grid[tc.r][tc.c] !== null && !srcSet.has(`${tc.r},${tc.c}`)) { valid = false; break; }
-  }
-  for (const tc of targetCells) {
-    const el = getCellEl(tc.r, tc.c);
-    if (el) el.classList.add(valid ? 'highlight' : 'invalid');
-  }
+// ═══════════════════════════════
+// CLICK
+// ═══════════════════════════════
+function onClick(r,c){
+  if(moveMode){handleMoveClick(r,c);return;}
+  if(rotateMode){handleRotateClick(r,c);return;}
+  placePiece(r,c);
 }
 
-function clearHighlight() {
-  document.querySelectorAll('#disk-grid .cell.highlight, #disk-grid .cell.invalid, #disk-grid .cell.move-target').forEach(el => {
-    el.classList.remove('highlight', 'invalid', 'move-target');
-  });
-}
-
-// ===== CLICK HANDLER =====
-function onCellClick(r, c) {
-  if (moveMode) {
-    handleMoveClick(r, c);
-    return;
-  }
-  placePiece(r, c);
-}
-
-// ===== PLACE PIECE =====
-function getCellsForPiece(r, c) {
-  const shape = getRotatedShape();
-  if (!shape) return [];
-  const cells = [];
-  for (let dr = 0; dr < shape.length; dr++)
-    for (let dc = 0; dc < shape[dr].length; dc++)
-      if (shape[dr][dc]) cells.push([r + dr, c + dc]);
+// ═══════════════════════════════
+// PLACER
+// ═══════════════════════════════
+function getCellsForPiece(r,c){
+  const s=getRotatedShape(); if(!s) return [];
+  const cells=[];
+  for(let dr=0;dr<s.length;dr++) for(let dc=0;dc<s[dr].length;dc++) if(s[dr][dc]) cells.push([r+dr,c+dc]);
   return cells;
 }
-
-function placePiece(r, c) {
-  if (!selectedPieceDef) return;
-  const p = players[currentPlayerIdx];
-  const cells = getCellsForPiece(r, c);
-  for (const [nr, nc] of cells) {
-    if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE || p.grid[nr][nc] !== null) return;
-  }
-  if (selectedPieceDef.size !== 1 && p.lastPieceId === selectedPieceDef.id) {
-    showStatus('Impossible ! Même pièce deux fois de suite !');
-    return;
-  }
-  const colorIdx = selectedPieceDef.color;
-  for (const [nr, nc] of cells) p.grid[nr][nc] = colorIdx;
-  lastPlaced = { playerIdx: currentPlayerIdx, cells, colorIdx };
-  p.lastPieceId = selectedPieceDef.id;
-  renderGrid();
-  checkVictory();
-  document.getElementById('status-piece').textContent = 'Placé: ' + selectedPieceDef.name;
+function placePiece(r,c){
+  if(!selectedPieceDef) return;
+  const p=players[currentPlayerIdx], cells=getCellsForPiece(r,c);
+  for(const[nr,nc]of cells) if(nr<0||nr>=GS||nc<0||nc>=GS||p.grid[nr][nc]!==null) return;
+  if(selectedPieceDef.size!==1&&p.lastPieceId===selectedPieceDef.id){showStatus('Impossible ! Même pièce deux fois !');return;}
+  const col=selectedPieceDef.color;
+  for(const[nr,nc]of cells) p.grid[nr][nc]=col;
+  lastPlaced={playerIdx:currentPlayerIdx,cells,col}; p.lastPieceId=selectedPieceDef.id;
+  renderGrid(); checkVictory();
+  document.getElementById('status-piece').textContent='Placé: '+selectedPieceDef.name;
 }
 
-// ===== MOVE MODE =====
-// Allows moving a connected group of same-color cells freely
-function toggleMoveMode() {
-  moveMode = !moveMode;
-  movingCells = null;
-  clearHighlight();
-  const btn = document.getElementById('move-mode-btn');
-  const ind = document.getElementById('mode-indicator');
-  if (moveMode) {
-    btn.style.borderTop = '2px solid var(--win-darker)';
-    btn.style.borderLeft = '2px solid var(--win-darker)';
-    btn.style.borderRight = '2px solid var(--win-white)';
-    btn.style.borderBottom = '2px solid var(--win-white)';
-    ind.style.display = 'block';
-    showStatus('Mode déplacement : cliquez une pièce');
+// ═══════════════════════════════
+// MODE DÉPLACER
+// ═══════════════════════════════
+function toggleMoveMode(){
+  if(rotateMode) toggleRotateMode();
+  moveMode=!moveMode; movingCells=null; clearHL();
+  document.getElementById('move-mode-btn').classList.toggle('active',moveMode);
+  const ind=document.getElementById('mode-indicator');
+  ind.className=moveMode?'mode-bar move-mode':'mode-bar';
+  ind.textContent=moveMode?'✋ MODE DÉPLACEMENT — cliquez une pièce, puis sa destination':'';
+  renderGrid();
+}
+function getConnected(r,c,color,grid){
+  const vis=new Set(),q=[[r,c]],res=[];
+  while(q.length){const[cr,cc]=q.shift();const k=`${cr},${cc}`;if(vis.has(k)||cr<0||cr>=GS||cc<0||cc>=GS||grid[cr][cc]!==color)continue;vis.add(k);res.push({r:cr,c:cc,color});q.push([cr+1,cc],[cr-1,cc],[cr,cc+1],[cr,cc-1]);}
+  return res;
+}
+function handleMoveClick(r,c){
+  const p=players[currentPlayerIdx];
+  if(!movingCells){
+    if(p.grid[r][c]===null){showStatus('Aucun bloc ici !');return;}
+    movingCells=getConnected(r,c,p.grid[r][c],p.grid);
+    movingCells.forEach(m=>{const el=$c(m.r,m.c);if(el){el.classList.remove('color-'+m.color);el.classList.add('move-source');}});
+    showStatus(`Bloc (${movingCells.length} cases) — cliquez destination`);
   } else {
-    btn.style.cssText = '';
-    ind.style.display = 'none';
-    showStatus('Mode normal');
+    const dr=r-movingCells[0].r,dc=c-movingCells[0].c;
+    const tgt=movingCells.map(m=>({r:m.r+dr,c:m.c+dc,color:m.color}));
+    const src=new Set(movingCells.map(m=>`${m.r},${m.c}`));
+    let ok=true;
+    for(const t of tgt){if(t.r<0||t.r>=GS||t.c<0||t.c>=GS){ok=false;break;}if(p.grid[t.r][t.c]!==null&&!src.has(`${t.r},${t.c}`)){ok=false;break;}}
+    if(!ok){showStatus('Impossible !');return;}
+    movingCells.forEach(m=>p.grid[m.r][m.c]=null);
+    tgt.forEach(t=>p.grid[t.r][t.c]=t.color);
+    movingCells=null; renderGrid(); showStatus('Pièce déplacée !');
   }
+}
+
+// ═══════════════════════════════
+// MODE PIVOTER PIÈCE POSÉE
+// ═══════════════════════════════
+function toggleRotateMode(){
+  if(moveMode) toggleMoveMode();
+  rotateMode=!rotateMode;
+  document.getElementById('rotate-mode-btn').classList.toggle('active',rotateMode);
+  const ind=document.getElementById('mode-indicator');
+  ind.className=rotateMode?'mode-bar rotate-mode':'mode-bar';
+  ind.textContent=rotateMode?'↻ MODE PIVOT — cliquez un bloc pour le faire pivoter sur place':'';
   renderGrid();
 }
+function handleRotateClick(r,c){
+  const p=players[currentPlayerIdx];
+  if(p.grid[r][c]===null){showStatus('Aucun bloc ici !');return;}
+  const color=p.grid[r][c];
+  const cells=getConnected(r,c,color,p.grid);
+  if(!cells.length) return;
 
-function getConnectedCells(r, c, color, grid) {
-  // BFS to get all connected cells of same color
-  const visited = new Set();
-  const queue = [[r, c]];
-  const result = [];
-  while (queue.length) {
-    const [cr, cc] = queue.shift();
-    const key = `${cr},${cc}`;
-    if (visited.has(key)) continue;
-    if (cr < 0 || cr >= GRID_SIZE || cc < 0 || cc >= GRID_SIZE) continue;
-    if (grid[cr][cc] !== color) continue;
-    visited.add(key);
-    result.push({ r: cr, c: cc, color });
-    queue.push([cr+1,cc],[cr-1,cc],[cr,cc+1],[cr,cc-1]);
+  const minR=Math.min(...cells.map(m=>m.r)), minC=Math.min(...cells.map(m=>m.c));
+  const maxR=Math.max(...cells.map(m=>m.r)), maxC=Math.max(...cells.map(m=>m.c));
+  const h=maxR-minR+1, w=maxC-minC+1;
+
+  const local=Array(h).fill(null).map(()=>Array(w).fill(0));
+  cells.forEach(m=>local[m.r-minR][m.c-minC]=1);
+  const rotated=rotateMat(local);
+  const rH=rotated.length, rW=rotated[0].length;
+
+  // Anchor at same top-left, nudge if out of bounds
+  let aR=minR, aC=minC;
+  if(aR+rH>GS) aR=GS-rH;
+  if(aC+rW>GS) aC=GS-rW;
+  if(aR<0) aR=0; if(aC<0) aC=0;
+
+  const newCells=[];
+  for(let dr=0;dr<rH;dr++) for(let dc=0;dc<rW;dc++) if(rotated[dr][dc]) newCells.push({r:aR+dr,c:aC+dc});
+
+  const srcSet=new Set(cells.map(m=>`${m.r},${m.c}`));
+  let ok=true;
+  for(const nc of newCells){
+    if(nc.r<0||nc.r>=GS||nc.c<0||nc.c>=GS){ok=false;break;}
+    if(p.grid[nc.r][nc.c]!==null&&!srcSet.has(`${nc.r},${nc.c}`)){ok=false;break;}
   }
-  return result;
+  if(!ok){showStatus('Impossible ! Pas de place pour pivoter.');return;}
+  cells.forEach(m=>p.grid[m.r][m.c]=null);
+  newCells.forEach(nc=>p.grid[nc.r][nc.c]=color);
+  renderGrid(); showStatus('Pièce pivotée !');
 }
 
-function handleMoveClick(r, c) {
-  const p = players[currentPlayerIdx];
-  if (!movingCells) {
-    // Select a piece to move
-    if (p.grid[r][c] === null) { showStatus('Aucun bloc ici !'); return; }
-    const color = p.grid[r][c];
-    movingCells = getConnectedCells(r, c, color, p.grid);
-    // Highlight source
-    for (const mc of movingCells) {
-      const el = getCellEl(mc.r, mc.c);
-      if (el) { el.classList.remove('color-' + color); el.classList.add('move-source'); }
-    }
-    showStatus(`Bloc sélectionné (${movingCells.length} cases) — cliquez la destination`);
-  } else {
-    // Move to destination
-    const dr = r - movingCells[0].r;
-    const dc = c - movingCells[0].c;
-    const targetCells = movingCells.map(mc => ({ r: mc.r + dr, c: mc.c + dc, color: mc.color }));
-    const srcSet = new Set(movingCells.map(mc => `${mc.r},${mc.c}`));
-    let valid = true;
-    for (const tc of targetCells) {
-      if (tc.r < 0 || tc.r >= GRID_SIZE || tc.c < 0 || tc.c >= GRID_SIZE) { valid = false; break; }
-      if (p.grid[tc.r][tc.c] !== null && !srcSet.has(`${tc.r},${tc.c}`)) { valid = false; break; }
-    }
-    if (!valid) {
-      showStatus('Impossible ! Cases occupées ou hors grille.');
-      return;
-    }
-    // Clear source
-    for (const mc of movingCells) p.grid[mc.r][mc.c] = null;
-    // Place at target
-    for (const tc of targetCells) p.grid[tc.r][tc.c] = tc.color;
-    movingCells = null;
-    renderGrid();
-    showStatus('Pièce déplacée !');
-    // Stay in move mode for multiple moves
-  }
+// ═══════════════════════════════
+// ANNULER
+// ═══════════════════════════════
+function clearLastPlaced(){
+  if(!lastPlaced||lastPlaced.playerIdx!==currentPlayerIdx) return;
+  lastPlaced.cells.forEach(([r,c])=>players[lastPlaced.playerIdx].grid[r][c]=null);
+  players[lastPlaced.playerIdx].lastPieceId=null; lastPlaced=null; renderGrid();
 }
 
-// ===== UNDO =====
-function clearLastPlaced() {
-  if (!lastPlaced || lastPlaced.playerIdx !== currentPlayerIdx) return;
-  const p = players[lastPlaced.playerIdx];
-  for (const [r, c] of lastPlaced.cells) p.grid[r][c] = null;
-  p.lastPieceId = null;
-  lastPlaced = null;
-  renderGrid();
-}
-
-// ===== SCORE =====
-function updateScore() {
-  const p = players[currentPlayerIdx];
-  let count = 0;
-  for (let r = 0; r < GRID_SIZE; r++)
-    for (let c = 0; c < GRID_SIZE; c++)
-      if (p.grid[r][c] !== null) count++;
-  p.score = count;
-  document.getElementById('score-value').textContent = count;
-  document.getElementById('score-percent').textContent = Math.round(count / 144 * 100) + '%';
-  document.getElementById('score-fill').style.width = (count / 144 * 100) + '%';
-  document.getElementById('file-count-display').textContent = count;
+// ═══════════════════════════════
+// SCORE
+// ═══════════════════════════════
+function updateScore(){
+  const p=players[currentPlayerIdx]; let n=0;
+  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++) if(p.grid[r][c]!==null) n++;
+  p.score=n;
+  document.getElementById('score-value').textContent=n;
+  document.getElementById('score-percent').textContent=Math.round(n/144*100)+'%';
+  document.getElementById('score-fill').style.width=(n/144*100)+'%';
+  document.getElementById('file-count-display').textContent=n;
   renderAllScores();
 }
-
-function renderAllScores() {
-  document.getElementById('all-scores').innerHTML = players.map((p, i) => {
-    const pct = Math.round(p.score / 144 * 100);
-    const active = i === currentPlayerIdx;
-    return `<div style="margin-bottom:2px;${active ? 'color:#5a2d82;font-weight:bold;' : ''}">
-      ${active ? '▶' : '　'} ${p.name}: ${p.score}/144 (${pct}%)${p.backupActive ? ' 💾' : ''}
+function renderAllScores(){
+  document.getElementById('all-scores').innerHTML=players.map((p,i)=>{
+    const a=i===currentPlayerIdx;
+    return `<div style="margin-bottom:3px;${a?'color:#5a2d82;font-weight:bold;':''}">
+      ${a?'▶':'　'} ${p.name}: ${p.score}/144 (${Math.round(p.score/144*100)}%)${p.backupActive?' 💾':''}
     </div>`;
   }).join('');
 }
 
-// ===== TABS =====
-function renderTabs() {
-  document.getElementById('player-tabs').innerHTML = players.map((p, i) =>
-    `<div class="player-tab ${i === currentPlayerIdx ? 'active' : ''}" onclick="switchPlayer(${i})">${p.name}</div>`
+// ═══════════════════════════════
+// TABS
+// ═══════════════════════════════
+function renderTabs(){
+  document.getElementById('player-tabs').innerHTML=players.map((p,i)=>
+    `<div class="player-tab${i===currentPlayerIdx?' active':''}" onclick="switchPlayer(${i})">${p.name}</div>`
   ).join('');
-  const name = players[currentPlayerIdx]?.name || '';
-  document.getElementById('current-player-name').textContent = name;
-  document.getElementById('player-disk-label').textContent = name;
+  const n=players[currentPlayerIdx]?.name||'';
+  document.getElementById('current-player-name').textContent=n;
+  document.getElementById('player-disk-label').textContent=n;
+}
+function switchPlayer(idx){
+  if(moveMode)   toggleMoveMode();
+  if(rotateMode) toggleRotateMode();
+  currentPlayerIdx=idx; rotation=0; selectedPieceDef=null; movingCells=null;
+  renderTabs(); renderGrid(); renderPiecesPanel(); updateStatusBar();
+  document.getElementById('selected-piece-display').textContent='Cliquez une pièce ↓';
 }
 
-function switchPlayer(idx) {
-  if (moveMode) toggleMoveMode();
-  currentPlayerIdx = idx;
-  rotation = 0;
-  selectedPieceDef = null;
-  renderTabs();
-  renderGrid();
-  renderPiecesPanel();
-  updateStatusBar();
-  document.getElementById('selected-piece-display').textContent = 'Cliquez une pièce ↓';
-}
-
-// ===== PIECES PANEL =====
-function renderPiecesPanel() {
-  const panel = document.getElementById('pieces-panel');
-  panel.innerHTML = '';
-  const groups = [
-    { label: '1 FICHIER',   pieces: PIECE_DEFS.filter(p => p.size === 1) },
-    { label: '5 FICHIERS',  pieces: PIECE_DEFS.filter(p => p.size === 5) },
-    { label: '10 FICHIERS', pieces: PIECE_DEFS.filter(p => p.size === 10) },
-  ];
-  for (const g of groups) {
-    const title = document.createElement('div');
-    title.style.cssText = 'font-family:VT323,monospace;font-size:13px;color:#888;border-bottom:1px solid #ccc;margin-bottom:3px;';
-    title.textContent = '— ' + g.label + ' —';
-    panel.appendChild(title);
-    const row = document.createElement('div');
-    row.className = 'piece-row';
-    for (const pd of g.pieces) row.appendChild(createPiecePreview(pd));
+// ═══════════════════════════════
+// PANNEAU PIÈCES
+// ═══════════════════════════════
+function renderPiecesPanel(){
+  const panel=document.getElementById('pieces-panel'); panel.innerHTML='';
+  [{label:'1 FICHIER',filter:p=>p.size===1},{label:'5 FICHIERS',filter:p=>p.size===5},{label:'10 FICHIERS',filter:p=>p.size===10}]
+  .forEach(g=>{
+    const t=document.createElement('div');
+    t.style.cssText='font-family:VT323,monospace;font-size:15px;color:#888;border-bottom:1px solid #ccc;margin-bottom:4px;';
+    t.textContent='— '+g.label+' —'; panel.appendChild(t);
+    const row=document.createElement('div'); row.className='piece-row';
+    PIECE_DEFS.filter(g.filter).forEach(pd=>row.appendChild(makePiecePreview(pd)));
     panel.appendChild(row);
+  });
+}
+function makePiecePreview(pd){
+  let shape=pd.shape;
+  if(selectedPieceDef?.id===pd.id) for(let i=0;i<rotation;i++) shape=rotateMat(shape);
+  const R=shape.length,C=shape[0].length;
+  const wrap=document.createElement('div'); wrap.title=pd.name;
+  const prev=document.createElement('div');
+  prev.className='piece-preview'+(selectedPieceDef?.id===pd.id?' selected':'');
+  prev.style.cssText=`display:grid;grid-template-columns:repeat(${C},14px);grid-template-rows:repeat(${R},14px);`;
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+    const cell=document.createElement('div');
+    cell.className='p-cell'+(shape[r][c]?' on':'');
+    if(shape[r][c]) cell.style.background=COLORS[pd.color];
+    prev.appendChild(cell);
   }
+  const lbl=document.createElement('div');
+  lbl.style.cssText='font-family:VT323,monospace;font-size:12px;text-align:center;color:#555;margin-top:1px;';
+  lbl.textContent=pd.name;
+  wrap.appendChild(prev); wrap.appendChild(lbl);
+  wrap.addEventListener('click',()=>selectPiece(pd));
+  return wrap;
+}
+function selectPiece(pd){
+  if(moveMode)   toggleMoveMode();
+  if(rotateMode) toggleRotateMode();
+  selectedPieceDef=pd; rotation=0; renderPiecesPanel();
+  document.getElementById('selected-piece-display').textContent=pd.name+' — '+pd.size+' fichier(s)';
+  document.getElementById('status-piece').textContent='Sélectionné: '+pd.name;
 }
 
-function createPiecePreview(pDef) {
-  let shape = pDef.shape;
-  if (selectedPieceDef?.id === pDef.id)
-    for (let i = 0; i < rotation; i++) shape = rotatePiece(shape);
-  const rows = shape.length, cols = shape[0].length;
-  const container = document.createElement('div');
-  container.title = pDef.name;
-  const preview = document.createElement('div');
-  preview.className = 'piece-preview' + (selectedPieceDef?.id === pDef.id ? ' selected' : '');
-  preview.style.gridTemplateColumns = `repeat(${cols}, 12px)`;
-  preview.style.gridTemplateRows = `repeat(${rows}, 12px)`;
-  preview.style.display = 'grid';
-  const col = getColor(pDef.color);
-  for (let r = 0; r < rows; r++)
-    for (let c = 0; c < cols; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'p-cell' + (shape[r][c] ? ' on' : '');
-      if (shape[r][c]) cell.style.background = col;
-      preview.appendChild(cell);
-    }
-  const label = document.createElement('div');
-  label.style.cssText = 'font-family:VT323,monospace;font-size:11px;text-align:center;color:#555;margin-top:1px;';
-  label.textContent = pDef.name;
-  container.appendChild(preview);
-  container.appendChild(label);
-  container.addEventListener('click', () => selectPiece(pDef));
-  return container;
+// ═══════════════════════════════
+// DEFRAG / BACKUP / TOOLS
+// ═══════════════════════════════
+function runDefrag(){
+  const p=players[currentPlayerIdx];
+  if(p.defragUsed){alert('DEFRAG déjà utilisé !');return;}
+  if(!confirm('DEFRAG : perdre 5 fichiers ?')) return;
+  let rem=0;
+  for(let r=0;r<GS&&rem<5;r++) for(let c=0;c<GS&&rem<5;c++) if(p.grid[r][c]!==null){p.grid[r][c]=null;rem++;}
+  p.defragUsed=true; renderGrid(); updateStatusBar();
 }
-
-function getColor(idx) {
-  return ['#7040c0','#2060c0','#20a060','#c06020','#20a0a0','#a0a020','#6030c0'][idx] || '#7040c0';
+function toggleBackup(){
+  players[currentPlayerIdx].backupActive=!players[currentPlayerIdx].backupActive;
+  updateStatusBar(); renderAllScores();
 }
-
-function selectPiece(pDef) {
-  if (moveMode) toggleMoveMode();
-  selectedPieceDef = pDef;
-  rotation = 0;
-  renderPiecesPanel();
-  document.getElementById('selected-piece-display').textContent = pDef.name + ' — ' + pDef.size + ' fichier(s)';
-  document.getElementById('status-piece').textContent = 'Sélectionné: ' + pDef.name;
+function updateStatusBar(){
+  const p=players[currentPlayerIdx];
+  document.getElementById('status-backup').textContent='BACKUP: '+(p.backupActive?'ON 💾':'OFF');
+  document.getElementById('status-defrag').textContent='DEFRAG: '+(p.defragUsed?'utilisé':'1 dispo');
+  document.getElementById('backup-btn').textContent=p.backupActive?'💾 BACKUP ON':'💾 BACKUP';
+  document.getElementById('defrag-btn').disabled=p.defragUsed;
 }
-
-// ===== DEFRAG =====
-function runDefrag() {
-  const p = players[currentPlayerIdx];
-  if (p.defragUsed) { alert('DEFRAG déjà utilisé pour ce joueur !'); return; }
-  if (!confirm('DEFRAG : Réorganiser ta disquette et perdre 5 fichiers ?')) return;
-  let removed = 0;
-  for (let r = 0; r < GRID_SIZE && removed < 5; r++)
-    for (let c = 0; c < GRID_SIZE && removed < 5; c++)
-      if (p.grid[r][c] !== null) { p.grid[r][c] = null; removed++; }
-  p.defragUsed = true;
-  document.getElementById('defrag-btn').disabled = true;
-  document.getElementById('status-defrag').textContent = 'DEFRAG: utilisé';
-  renderGrid();
-}
-
-// ===== BACKUP =====
-function toggleBackup() {
-  players[currentPlayerIdx].backupActive = !players[currentPlayerIdx].backupActive;
-  updateStatusBar();
-  renderAllScores();
-}
-
-function updateStatusBar() {
-  const p = players[currentPlayerIdx];
-  document.getElementById('status-backup').textContent = 'BACKUP: ' + (p.backupActive ? 'ON 💾' : 'OFF');
-  document.getElementById('status-defrag').textContent = 'DEFRAG: ' + (p.defragUsed ? 'utilisé' : '1 dispo');
-  document.getElementById('backup-btn').textContent = p.backupActive ? '💾 BACKUP ON' : '💾 BACKUP';
-  document.getElementById('defrag-btn').disabled = p.defragUsed;
-}
-
-// ===== TOOLS =====
-function countCells() {
-  const p = players[currentPlayerIdx];
-  let count = 0;
-  for (let r = 0; r < GRID_SIZE; r++)
-    for (let c = 0; c < GRID_SIZE; c++)
-      if (p.grid[r][c] !== null) count++;
-  return count;
-}
-
-function exchange5to1() {
-  const p = players[currentPlayerIdx];
-  const count = countCells();
-  if (count < 5) {
-    alert('Pas assez de fichiers ! Il faut au moins 5 fichiers de 1 sur ta disquette.');
-    return;
-  }
-  if (!confirm('Échanger 5 cases contre 1 bloc de 5 ?')) return;
-  let removed = 0;
-  for (let r = 0; r < GRID_SIZE && removed < 5; r++)
-    for (let c = 0; c < GRID_SIZE && removed < 5; c++)
-      if (p.grid[r][c] !== null) { p.grid[r][c] = null; removed++; }
-  placeFirstAvailable(5, 1);
-  renderGrid();
-}
-
-function exchange2to1() {
-  const p = players[currentPlayerIdx];
-  const count = countCells();
-  if (count < 10) {
-    alert('Pas assez de fichiers ! Il faut au moins 10 cases (2 blocs de 5) sur ta disquette.');
-    return;
-  }
-  if (!confirm('Échanger 10 cases (2×5) contre 1 bloc de 10 ?')) return;
-  let removed = 0;
-  for (let r = 0; r < GRID_SIZE && removed < 10; r++)
-    for (let c = 0; c < GRID_SIZE && removed < 10; c++)
-      if (p.grid[r][c] !== null) { p.grid[r][c] = null; removed++; }
-  placeFirstAvailable(10, 4);
-  renderGrid();
-}
-
-function placeFirstAvailable(count, colorIdx) {
-  const p = players[currentPlayerIdx];
-  let placed = 0;
-  for (let r = 0; r < GRID_SIZE && placed < count; r++)
-    for (let c = 0; c < GRID_SIZE && placed < count; c++)
-      if (p.grid[r][c] === null) { p.grid[r][c] = colorIdx; placed++; }
+function countCells(){let n=0,p=players[currentPlayerIdx];for(let r=0;r<GS;r++)for(let c=0;c<GS;c++)if(p.grid[r][c]!==null)n++;return n;}
+function placeFirst(count,color){
+  const p=players[currentPlayerIdx];let placed=0;
+  for(let r=0;r<GS&&placed<count;r++) for(let c=0;c<GS&&placed<count;c++) if(p.grid[r][c]===null){p.grid[r][c]=color;placed++;}
   updateScore();
 }
-
-// ===== CLEAR =====
-function clearCurrentDisk() {
-  if (!confirm('Vider la disquette de ' + players[currentPlayerIdx].name + ' ?')) return;
-  const p = players[currentPlayerIdx];
-  p.grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
-  p.score = 0;
-  lastPlaced = null;
-  if (moveMode) toggleMoveMode();
-  renderGrid();
+function exchange5to1(){
+  if(countCells()<5){alert('Pas assez (besoin de 5) !');return;}
+  if(!confirm('5 cases → 1 bloc de 5 ?')) return;
+  const p=players[currentPlayerIdx];let rem=0;
+  for(let r=0;r<GS&&rem<5;r++) for(let c=0;c<GS&&rem<5;c++) if(p.grid[r][c]!==null){p.grid[r][c]=null;rem++;}
+  placeFirst(5,1); renderGrid();
+}
+function exchange2to1(){
+  if(countCells()<10){alert('Pas assez (besoin de 10) !');return;}
+  if(!confirm('10 cases → 1 bloc de 10 ?')) return;
+  const p=players[currentPlayerIdx];let rem=0;
+  for(let r=0;r<GS&&rem<10;r++) for(let c=0;c<GS&&rem<10;c++) if(p.grid[r][c]!==null){p.grid[r][c]=null;rem++;}
+  placeFirst(10,4); renderGrid();
 }
 
-// ===== VICTORY =====
-function checkVictory() {
-  const p = players[currentPlayerIdx];
-  updateScore();
-  if (p.score === 144 && p.backupActive) {
-    document.getElementById('victory-text').innerHTML =
-      `VICTOIRE !<br>${p.name} remporte la partie !<br>💾 144/144 Mo enregistrés !`;
+// ═══════════════════════════════
+// VIDER / VICTOIRE
+// ═══════════════════════════════
+function clearCurrentDisk(){
+  if(!confirm('Vider la disquette ?')) return;
+  const p=players[currentPlayerIdx];
+  p.grid=Array(GS).fill(null).map(()=>Array(GS).fill(null));
+  p.score=0; lastPlaced=null;
+  if(moveMode)   toggleMoveMode();
+  if(rotateMode) toggleRotateMode();
+  renderGrid();
+}
+function checkVictory(){
+  const p=players[currentPlayerIdx]; updateScore();
+  if(p.score===144&&p.backupActive){
+    document.getElementById('victory-text').innerHTML=`VICTOIRE !<br>${p.name} remporte la partie !<br>💾 144/144 Mo !`;
     document.getElementById('victory-modal').classList.add('show');
-    document.getElementById('grid-status').textContent = '🏆 VICTOIRE!';
-  } else if (p.score === 144) {
-    document.getElementById('grid-status').textContent = '144 Mo — active BACKUP!';
+    document.getElementById('grid-status').textContent='🏆 VICTOIRE!';
+  } else if(p.score===144){
+    document.getElementById('grid-status').textContent='144 Mo — active BACKUP!';
   }
 }
-
-function showStatus(msg) {
-  document.getElementById('status-piece').textContent = msg;
-  setTimeout(() => {
-    if (!moveMode)
-      document.getElementById('status-piece').textContent = selectedPieceDef ? 'Sélectionné: ' + selectedPieceDef.name : 'Aucune pièce sélectionnée';
-  }, 2500);
+function showStatus(msg){
+  document.getElementById('status-piece').textContent=msg;
+  setTimeout(()=>{
+    if(!moveMode&&!rotateMode)
+      document.getElementById('status-piece').textContent=
+        selectedPieceDef?'Sélectionné: '+selectedPieceDef.name:'Aucune pièce sélectionnée';
+  },2500);
 }
-
-// ===== RESET =====
-function resetAll() {
-  if (moveMode) toggleMoveMode();
-  players = players.map(p => createPlayer(p.name));
-  lastPlaced = null;
-  selectedPieceDef = null;
-  rotation = 0;
+function resetAll(){
+  if(moveMode)   toggleMoveMode();
+  if(rotateMode) toggleRotateMode();
+  players=players.map(p=>createPlayer(p.name)); lastPlaced=null; selectedPieceDef=null; rotation=0;
   document.getElementById('victory-modal').classList.remove('show');
-  renderTabs();
-  renderGrid();
-  renderPiecesPanel();
-  renderAllScores();
-  updateStatusBar();
+  renderTabs(); renderGrid(); renderPiecesPanel(); renderAllScores(); updateStatusBar();
 }
 
-// ===== CLOCK =====
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+// ═══════════════════════════════
+// HORLOGE + DRAG
+// ═══════════════════════════════
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
 }
-setInterval(updateClock, 1000);
-updateClock();
+setInterval(updateClock,1000); updateClock();
 
-// ===== DRAGGABLE =====
-function makeDraggable(win, handle) {
-  let drag = false, ox = 0, oy = 0;
-  handle.addEventListener('mousedown', e => {
-    drag = true;
-    ox = e.clientX - win.offsetLeft;
-    oy = e.clientY - win.offsetTop;
-    win.style.zIndex = 100;
-    win.style.transform = 'none';
-    document.body.style.userSelect = 'none';
-  });
-  document.addEventListener('mousemove', e => {
-    if (!drag) return;
-    win.style.left = (e.clientX - ox) + 'px';
-    win.style.top = (e.clientY - oy) + 'px';
-  });
-  document.addEventListener('mouseup', () => { drag = false; document.body.style.userSelect = ''; });
+function makeDraggable(win,handle){
+  let drag=false,ox=0,oy=0;
+  handle.addEventListener('mousedown',e=>{drag=true;ox=e.clientX-win.offsetLeft;oy=e.clientY-win.offsetTop;win.style.zIndex=100;win.style.transform='none';document.body.style.userSelect='none';});
+  document.addEventListener('mousemove',e=>{if(!drag)return;win.style.left=(e.clientX-ox)+'px';win.style.top=(e.clientY-oy)+'px';});
+  document.addEventListener('mouseup',()=>{drag=false;document.body.style.userSelect='';});
 }
 
-// ===== INIT =====
-function init() {
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+function init(){
   buildGrid();
-  players = [createPlayer('Joueur 1')];
-  renderTabs();
-  renderGrid();
-  renderPiecesPanel();
-  renderAllScores();
-  updateStatusBar();
-  makeDraggable(document.getElementById('win-main'), document.getElementById('main-titlebar'));
-  makeDraggable(document.getElementById('win-info'), document.getElementById('info-titlebar'));
-  makeDraggable(document.getElementById('win-logo'), document.getElementById('logo-titlebar'));
+  players=[createPlayer('Joueur 1')];
+  renderTabs(); renderGrid(); renderPiecesPanel(); renderAllScores(); updateStatusBar();
+  makeDraggable(document.getElementById('win-main'),  document.getElementById('main-titlebar'));
+  makeDraggable(document.getElementById('win-info'),   document.getElementById('info-titlebar'));
 }
-
 init();
 </script>
 </body>
