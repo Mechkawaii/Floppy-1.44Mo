@@ -304,7 +304,23 @@
   .info-key { color: #5a2d82; font-weight: bold; }
   .sep { height: 2px; background: var(--win-darker); box-shadow: 0 1px 0 var(--win-white); margin: 4px 6px; }
 
-  /* ══ MOBILE ══ */
+  /* ══ TOUCH OPTIMISATIONS ══ */
+  /* Empêche le scroll parasite sur la grille et les boutons */
+  #disk-grid        { touch-action: none; }
+  .action-btn,
+  .add-player-btn,
+  .player-tab       { touch-action: manipulation; }
+  /* Agrandit les zones tactiles des boutons */
+  @media (max-width: 700px) {
+    .action-btn     { min-height: 44px; font-size: 17px; padding: 4px 12px; }
+    .add-player-btn { min-height: 44px; }
+    .player-tab     { min-height: 40px; padding: 6px 14px; }
+    /* Pièces plus grandes pour les doigts */
+    .p-cell         { width: 16px !important; height: 16px !important; }
+    .piece-preview  { padding: 7px; }
+  }
+
+
   @media (max-width: 700px) {
     body { overflow-y: auto; overflow-x: hidden; }
 
@@ -522,9 +538,9 @@
 </div>
 
 <script>
-// ═══════════════════════════════
-// PIÈCES
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// CONSTANTES
+// ═══════════════════════════════════════════════════════
 const PIECE_DEFS = [
   { id:'one_1',  name:'1 fichier',   size:1,  shape:[[1]], color:0 },
   { id:'five_T', name:'5 fich. T',   size:5,  shape:[[1,1,1],[0,1,0],[0,1,0]], color:1 },
@@ -534,14 +550,22 @@ const PIECE_DEFS = [
   { id:'ten_II', name:'10 fich. II', size:10, shape:[[1,1,1,1,1],[1,1,1,1,1]], color:5 },
 ];
 const COLORS = ['#8040b0','#3060a8','#208858','#b85020','#208898','#888020','#a82060'];
-
-// ═══════════════════════════════
-// ÉTAT
-// ═══════════════════════════════
 const GS = 12;
+
+// ═══════════════════════════════════════════════════════
+// ÉTAT
+// ═══════════════════════════════════════════════════════
 let players = [], currentPlayerIdx = 0;
 let selectedPieceDef = null, rotation = 0, lastPlaced = null;
 let moveMode = false, rotateMode = false, movingCells = null;
+
+// Touch drag
+let tdPiece = null;      // PieceDef en cours de drag
+let tdGhost = null;      // Élément DOM ghost
+let tdActive = false;    // drag en cours
+let tdHoldTimer = null;  // timer long-press
+let tdLastCell = null;   // dernière cellule {r,c} survolée
+let tdLastTap = {};      // pour double-tap { pieceId, time }
 
 function createPlayer(name) {
   return { name, score:0, backupActive:false, defragUsed:false, lastPieceId:null,
@@ -553,9 +577,9 @@ function addPlayer() {
   renderTabs(); renderAllScores();
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 // ROTATION MATRICE
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function rotateMat(s) {
   const R=s.length,C=s[0].length,ns=Array(C).fill(null).map(()=>Array(R).fill(0));
   for(let r=0;r<R;r++) for(let c=0;c<C;c++) ns[c][R-1-r]=s[r][c];
@@ -574,9 +598,9 @@ function rotateSelected() {
     selectedPieceDef.name+' | Rot: '+(rotation*90)+'°';
 }
 
-// ═══════════════════════════════
-// GRILLE
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// GRILLE — construction
+// ═══════════════════════════════════════════════════════
 function buildGrid() {
   ['disk-grid','grid-x-coords','grid-y-coords'].forEach(id=>document.getElementById(id).innerHTML='');
   const xc=document.getElementById('grid-x-coords');
@@ -587,6 +611,7 @@ function buildGrid() {
   for(let r=0;r<GS;r++) for(let c=0;c<GS;c++){
     const el=document.createElement('div');
     el.className='cell'; el.dataset.r=r; el.dataset.c=c;
+    // Mouse events
     el.addEventListener('mouseenter',()=>onHover(r,c));
     el.addEventListener('mouseleave',clearHL);
     el.addEventListener('click',()=>onClick(r,c));
@@ -605,9 +630,9 @@ function renderGrid() {
   updateScore();
 }
 
-// ═══════════════════════════════
-// HOVER
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// HOVER / HIGHLIGHT
+// ═══════════════════════════════════════════════════════
 function onHover(r,c) {
   if(moveMode&&movingCells){hlMoveTarget(r,c);return;}
   if(!moveMode&&!rotateMode&&selectedPieceDef) hlPlace(r,c);
@@ -632,18 +657,18 @@ function hlMoveTarget(r,c) {
   for(const t of tgt){const el=$c(t.r,t.c);if(el)el.classList.add(ok?'highlight':'invalid');}
 }
 
-// ═══════════════════════════════
-// CLICK
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// CLICK (souris)
+// ═══════════════════════════════════════════════════════
 function onClick(r,c){
   if(moveMode){handleMoveClick(r,c);return;}
   if(rotateMode){handleRotateClick(r,c);return;}
   placePiece(r,c);
 }
 
-// ═══════════════════════════════
-// PLACER
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// PLACER UNE PIÈCE
+// ═══════════════════════════════════════════════════════
 function getCellsForPiece(r,c){
   const s=getRotatedShape(); if(!s) return [];
   const cells=[];
@@ -662,16 +687,179 @@ function placePiece(r,c){
   document.getElementById('status-piece').textContent='Placé: '+selectedPieceDef.name;
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// TOUCH DRAG & DROP — depuis le panneau de pièces
+// ═══════════════════════════════════════════════════════
+
+// Obtenir la cellule sous un point (x,y) écran
+function getCellAt(x,y){
+  const els = document.elementsFromPoint(x,y);
+  for(const el of els){
+    if(el.classList&&el.classList.contains('cell')){
+      return {r:parseInt(el.dataset.r), c:parseInt(el.dataset.c)};
+    }
+  }
+  return null;
+}
+
+// Créer le ghost visuel
+function createGhost(pd){
+  let shape=pd.shape;
+  for(let i=0;i<rotation;i++) shape=rotateMat(shape);
+  const R=shape.length, C=shape[0].length;
+  const cs=getCellSize();
+  const ghost=document.createElement('div');
+  ghost.id='touch-ghost';
+  ghost.style.cssText=`
+    position:fixed; z-index:9999; pointer-events:none;
+    display:grid;
+    grid-template-columns:repeat(${C},${cs}px);
+    grid-template-rows:repeat(${R},${cs}px);
+    gap:1px; opacity:0.75;
+  `;
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+    const cell=document.createElement('div');
+    if(shape[r][c]){
+      cell.style.background=COLORS[pd.color];
+      cell.style.border='1px solid rgba(255,255,255,0.4)';
+    }
+    ghost.appendChild(cell);
+  }
+  document.body.appendChild(ghost);
+  return ghost;
+}
+function moveGhost(x,y){
+  if(!tdGhost) return;
+  const cs=getCellSize();
+  let shape=tdPiece.shape;
+  for(let i=0;i<rotation;i++) shape=rotateMat(shape);
+  const C=shape[0].length, R=shape.length;
+  // Centre le ghost sous le doigt
+  tdGhost.style.left=(x - (C*cs)/2)+'px';
+  tdGhost.style.top =(y - (R*cs)/2)+'px';
+}
+function removeGhost(){
+  if(tdGhost){tdGhost.remove();tdGhost=null;}
+}
+
+// Obtenir la taille courante d'une cellule
+function getCellSize(){
+  const cell=document.querySelector('.cell');
+  return cell ? cell.offsetWidth : 46;
+}
+
+// Touch START sur une preview de pièce
+function onPieceTouchStart(e, pd){
+  e.preventDefault();
+  const touch=e.touches[0];
+
+  // Double-tap = rotation
+  const now=Date.now();
+  if(tdLastTap.id===pd.id && now-tdLastTap.time<400){
+    tdLastTap={};
+    selectPiece(pd);
+    rotateSelected();
+    return;
+  }
+  tdLastTap={id:pd.id, time:now};
+
+  // Sélection immédiate
+  selectPiece(pd);
+
+  // Long-press pour démarrer le drag (300ms)
+  tdHoldTimer=setTimeout(()=>{
+    tdActive=true;
+    tdPiece=pd;
+    tdGhost=createGhost(pd);
+    moveGhost(touch.clientX, touch.clientY);
+    navigator.vibrate&&navigator.vibrate(40);
+  },300);
+}
+
+// Touch START directement sur la grille (pièce déjà sélectionnée)
+function onGridTouchStart(e){
+  if(!selectedPieceDef&&!moveMode&&!rotateMode) return;
+  // don't prevent default here — let scroll work if no piece
+}
+
+// Touch MOVE global
+function onDocTouchMove(e){
+  if(!tdActive||!tdGhost) return;
+  e.preventDefault();
+  const touch=e.touches[0];
+  moveGhost(touch.clientX, touch.clientY);
+
+  // Highlight cellule cible
+  const cell=getCellAt(touch.clientX, touch.clientY);
+  if(cell&&(!tdLastCell||tdLastCell.r!==cell.r||tdLastCell.c!==cell.c)){
+    tdLastCell=cell;
+    clearHL();
+    hlPlace(cell.r, cell.c);
+  }
+}
+
+// Touch END global
+function onDocTouchEnd(e){
+  clearTimeout(tdHoldTimer);
+
+  if(tdActive && tdGhost){
+    e.preventDefault();
+    const touch=e.changedTouches[0];
+    const cell=getCellAt(touch.clientX, touch.clientY);
+    removeGhost(); clearHL();
+    if(cell) placePiece(cell.r, cell.c);
+    tdActive=false; tdPiece=null; tdLastCell=null;
+  }
+}
+
+// Touch sur la grille (tap simple = placer)
+function onGridTouchEnd(e, r, c){
+  if(tdActive) return; // handled by doc touch end
+  e.preventDefault();
+  onClick(r,c);
+}
+
+// Touch sur la grille (swipe = rotation pendant le survol)
+// Double-tap sur la grille = rotation de la pièce sélectionnée
+let gridDoubleTapTimer=null;
+function onGridCellTap(r,c){
+  // handled in onGridTouchEnd → onClick
+}
+
+// ═══════════════════════════════════════════════════════
+// TOUCH — pièces posées : long-press pour déplacer
+// ═══════════════════════════════════════════════════════
+let placedTouchTimer=null;
+let placedTouchOrigin=null;
+
+function onPlacedCellTouchStart(e,r,c){
+  const p=players[currentPlayerIdx];
+  if(p.grid[r][c]===null) return;
+  e.preventDefault();
+  placedTouchOrigin={r,c};
+  const touch=e.touches[0];
+
+  placedTouchTimer=setTimeout(()=>{
+    // Active le move mode et sélectionne le bloc
+    if(!moveMode) toggleMoveMode();
+    handleMoveClick(r,c);
+    navigator.vibrate&&navigator.vibrate(40);
+  },350);
+}
+function onPlacedCellTouchEnd(e,r,c){
+  clearTimeout(placedTouchTimer);
+}
+
+// ═══════════════════════════════════════════════════════
 // MODE DÉPLACER
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function toggleMoveMode(){
   if(rotateMode) toggleRotateMode();
   moveMode=!moveMode; movingCells=null; clearHL();
   document.getElementById('move-mode-btn').classList.toggle('active',moveMode);
   const ind=document.getElementById('mode-indicator');
   ind.className=moveMode?'mode-bar move-mode':'mode-bar';
-  ind.textContent=moveMode?'✋ MODE DÉPLACEMENT — cliquez une pièce, puis sa destination':'';
+  ind.textContent=moveMode?'✋ MODE DÉPLACEMENT — touchez/cliquez une pièce, puis sa destination':'';
   renderGrid();
 }
 function getConnected(r,c,color,grid){
@@ -685,7 +873,7 @@ function handleMoveClick(r,c){
     if(p.grid[r][c]===null){showStatus('Aucun bloc ici !');return;}
     movingCells=getConnected(r,c,p.grid[r][c],p.grid);
     movingCells.forEach(m=>{const el=$c(m.r,m.c);if(el){el.classList.remove('color-'+m.color);el.classList.add('move-source');}});
-    showStatus(`Bloc (${movingCells.length} cases) — cliquez destination`);
+    showStatus(`Bloc (${movingCells.length} cases) — touchez destination`);
   } else {
     const dr=r-movingCells[0].r,dc=c-movingCells[0].c;
     const tgt=movingCells.map(m=>({r:m.r+dr,c:m.c+dc,color:m.color}));
@@ -696,19 +884,21 @@ function handleMoveClick(r,c){
     movingCells.forEach(m=>p.grid[m.r][m.c]=null);
     tgt.forEach(t=>p.grid[t.r][t.c]=t.color);
     movingCells=null; renderGrid(); showStatus('Pièce déplacée !');
+    // Auto-quit move mode on mobile after successful move
+    if(window.innerWidth<=700) toggleMoveMode();
   }
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 // MODE PIVOTER PIÈCE POSÉE
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function toggleRotateMode(){
   if(moveMode) toggleMoveMode();
   rotateMode=!rotateMode;
   document.getElementById('rotate-mode-btn').classList.toggle('active',rotateMode);
   const ind=document.getElementById('mode-indicator');
   ind.className=rotateMode?'mode-bar rotate-mode':'mode-bar';
-  ind.textContent=rotateMode?'↻ MODE PIVOT — cliquez un bloc pour le faire pivoter sur place':'';
+  ind.textContent=rotateMode?'↻ MODE PIVOT — touchez/cliquez un bloc pour pivoter':'';
   renderGrid();
 }
 function handleRotateClick(r,c){
@@ -717,25 +907,18 @@ function handleRotateClick(r,c){
   const color=p.grid[r][c];
   const cells=getConnected(r,c,color,p.grid);
   if(!cells.length) return;
-
   const minR=Math.min(...cells.map(m=>m.r)), minC=Math.min(...cells.map(m=>m.c));
   const maxR=Math.max(...cells.map(m=>m.r)), maxC=Math.max(...cells.map(m=>m.c));
   const h=maxR-minR+1, w=maxC-minC+1;
-
   const local=Array(h).fill(null).map(()=>Array(w).fill(0));
   cells.forEach(m=>local[m.r-minR][m.c-minC]=1);
   const rotated=rotateMat(local);
   const rH=rotated.length, rW=rotated[0].length;
-
-  // Anchor at same top-left, nudge if out of bounds
   let aR=minR, aC=minC;
-  if(aR+rH>GS) aR=GS-rH;
-  if(aC+rW>GS) aC=GS-rW;
+  if(aR+rH>GS) aR=GS-rH; if(aC+rW>GS) aC=GS-rW;
   if(aR<0) aR=0; if(aC<0) aC=0;
-
   const newCells=[];
   for(let dr=0;dr<rH;dr++) for(let dc=0;dc<rW;dc++) if(rotated[dr][dc]) newCells.push({r:aR+dr,c:aC+dc});
-
   const srcSet=new Set(cells.map(m=>`${m.r},${m.c}`));
   let ok=true;
   for(const nc of newCells){
@@ -746,20 +929,21 @@ function handleRotateClick(r,c){
   cells.forEach(m=>p.grid[m.r][m.c]=null);
   newCells.forEach(nc=>p.grid[nc.r][nc.c]=color);
   renderGrid(); showStatus('Pièce pivotée !');
+  if(window.innerWidth<=700) toggleRotateMode();
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 // ANNULER
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function clearLastPlaced(){
   if(!lastPlaced||lastPlaced.playerIdx!==currentPlayerIdx) return;
   lastPlaced.cells.forEach(([r,c])=>players[lastPlaced.playerIdx].grid[r][c]=null);
   players[lastPlaced.playerIdx].lastPieceId=null; lastPlaced=null; renderGrid();
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 // SCORE
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function updateScore(){
   const p=players[currentPlayerIdx]; let n=0;
   for(let r=0;r<GS;r++) for(let c=0;c<GS;c++) if(p.grid[r][c]!==null) n++;
@@ -773,15 +957,13 @@ function updateScore(){
 function renderAllScores(){
   document.getElementById('all-scores').innerHTML=players.map((p,i)=>{
     const a=i===currentPlayerIdx;
-    return `<div style="margin-bottom:3px;${a?'color:#5a2d82;font-weight:bold;':''}">
-      ${a?'▶':'　'} ${p.name}: ${p.score}/144 (${Math.round(p.score/144*100)}%)${p.backupActive?' 💾':''}
-    </div>`;
+    return `<div style="margin-bottom:3px;${a?'color:#5a2d82;font-weight:bold;':''}">${a?'▶':'　'} ${p.name}: ${p.score}/144 (${Math.round(p.score/144*100)}%)${p.backupActive?' 💾':''}</div>`;
   }).join('');
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 // TABS
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function renderTabs(){
   document.getElementById('player-tabs').innerHTML=players.map((p,i)=>
     `<div class="player-tab${i===currentPlayerIdx?' active':''}" onclick="switchPlayer(${i})">${p.name}</div>`
@@ -795,12 +977,12 @@ function switchPlayer(idx){
   if(rotateMode) toggleRotateMode();
   currentPlayerIdx=idx; rotation=0; selectedPieceDef=null; movingCells=null;
   renderTabs(); renderGrid(); renderPiecesPanel(); updateStatusBar();
-  document.getElementById('selected-piece-display').textContent='Cliquez une pièce ↓';
+  document.getElementById('selected-piece-display').textContent='Touchez une pièce ↓';
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 // PANNEAU PIÈCES
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function renderPiecesPanel(){
   const panel=document.getElementById('pieces-panel'); panel.innerHTML='';
   [{label:'1 FICHIER',filter:p=>p.size===1},{label:'5 FICHIERS',filter:p=>p.size===5},{label:'10 FICHIERS',filter:p=>p.size===10}]
@@ -818,9 +1000,11 @@ function makePiecePreview(pd){
   if(selectedPieceDef?.id===pd.id) for(let i=0;i<rotation;i++) shape=rotateMat(shape);
   const R=shape.length,C=shape[0].length;
   const wrap=document.createElement('div'); wrap.title=pd.name;
+  // Touch: plus grande zone tactile
+  wrap.style.cssText='touch-action:none; user-select:none; -webkit-user-select:none;';
   const prev=document.createElement('div');
   prev.className='piece-preview'+(selectedPieceDef?.id===pd.id?' selected':'');
-  prev.style.cssText=`display:grid;grid-template-columns:repeat(${C},14px);grid-template-rows:repeat(${R},14px);`;
+  prev.style.cssText=`display:grid;grid-template-columns:repeat(${C},16px);grid-template-rows:repeat(${R},16px);`;
   for(let r=0;r<R;r++) for(let c=0;c<C;c++){
     const cell=document.createElement('div');
     cell.className='p-cell'+(shape[r][c]?' on':'');
@@ -828,10 +1012,18 @@ function makePiecePreview(pd){
     prev.appendChild(cell);
   }
   const lbl=document.createElement('div');
-  lbl.style.cssText='font-family:VT323,monospace;font-size:12px;text-align:center;color:#555;margin-top:1px;';
+  lbl.style.cssText='font-family:VT323,monospace;font-size:13px;text-align:center;color:#555;margin-top:2px;';
   lbl.textContent=pd.name;
   wrap.appendChild(prev); wrap.appendChild(lbl);
+
+  // Mouse click
   wrap.addEventListener('click',()=>selectPiece(pd));
+
+  // Touch events
+  wrap.addEventListener('touchstart', e=>onPieceTouchStart(e,pd), {passive:false});
+  wrap.addEventListener('touchend',   e=>{clearTimeout(tdHoldTimer);}, {passive:true});
+  wrap.addEventListener('touchcancel',e=>{clearTimeout(tdHoldTimer); removeGhost(); tdActive=false;}, {passive:true});
+
   return wrap;
 }
 function selectPiece(pd){
@@ -842,9 +1034,57 @@ function selectPiece(pd){
   document.getElementById('status-piece').textContent='Sélectionné: '+pd.name;
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// TOUCH — grille : attachement des événements
+// ═══════════════════════════════════════════════════════
+function attachGridTouchEvents(){
+  document.getElementById('disk-grid').addEventListener('touchstart', e=>{
+    const touch=e.touches[0];
+    const cell=getCellAt(touch.clientX,touch.clientY);
+    if(!cell) return;
+    const p=players[currentPlayerIdx];
+
+    // Si pièce posée ET moveMode pas encore actif → long press pour déplacer
+    if(p.grid[cell.r][cell.c]!==null && !moveMode && !rotateMode && !selectedPieceDef){
+      e.preventDefault();
+      clearTimeout(placedTouchTimer);
+      placedTouchTimer=setTimeout(()=>{
+        toggleMoveMode();
+        handleMoveClick(cell.r,cell.c);
+        navigator.vibrate&&navigator.vibrate(40);
+      },350);
+      return;
+    }
+
+    // Sinon, tap simple → placer / action
+    // Le touchend gère le placement
+  }, {passive:false});
+
+  document.getElementById('disk-grid').addEventListener('touchend', e=>{
+    clearTimeout(placedTouchTimer);
+    if(tdActive) return; // géré par onDocTouchEnd
+    e.preventDefault();
+    const touch=e.changedTouches[0];
+    const cell=getCellAt(touch.clientX,touch.clientY);
+    if(cell) onClick(cell.r,cell.c);
+  }, {passive:false});
+
+  document.getElementById('disk-grid').addEventListener('touchmove', e=>{
+    clearTimeout(placedTouchTimer);
+    if(!selectedPieceDef && !moveMode) return; // laisser scroller
+    e.preventDefault();
+    const touch=e.touches[0];
+    const cell=getCellAt(touch.clientX,touch.clientY);
+    if(cell){
+      if(moveMode&&movingCells) hlMoveTarget(cell.r,cell.c);
+      else if(selectedPieceDef) hlPlace(cell.r,cell.c);
+    }
+  }, {passive:false});
+}
+
+// ═══════════════════════════════════════════════════════
 // DEFRAG / BACKUP / TOOLS
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function runDefrag(){
   const p=players[currentPlayerIdx];
   if(p.defragUsed){alert('DEFRAG déjà utilisé !');return;}
@@ -885,9 +1125,9 @@ function exchange2to1(){
   placeFirst(10,4); renderGrid();
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 // VIDER / VICTOIRE
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function clearCurrentDisk(){
   if(!confirm('Vider la disquette ?')) return;
   const p=players[currentPlayerIdx];
@@ -923,9 +1163,9 @@ function resetAll(){
   renderTabs(); renderGrid(); renderPiecesPanel(); renderAllScores(); updateStatusBar();
 }
 
-// ═══════════════════════════════
-// HORLOGE + DRAG
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// HORLOGE + DRAG FENÊTRE (desktop)
+// ═══════════════════════════════════════════════════════
 function updateClock(){
   const n=new Date();
   document.getElementById('clock').textContent=n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
@@ -939,32 +1179,56 @@ function makeDraggable(win,handle){
   document.addEventListener('mouseup',()=>{drag=false;document.body.style.userSelect='';});
 }
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+// TOUCH DRAG GLOBAL — events sur document
+// ═══════════════════════════════════════════════════════
+document.addEventListener('touchmove', e=>{
+  if(!tdActive||!tdGhost) return;
+  e.preventDefault();
+  const touch=e.touches[0];
+  moveGhost(touch.clientX, touch.clientY);
+  const cell=getCellAt(touch.clientX, touch.clientY);
+  if(cell&&(!tdLastCell||tdLastCell.r!==cell.r||tdLastCell.c!==cell.c)){
+    tdLastCell=cell; clearHL(); hlPlace(cell.r, cell.c);
+  }
+}, {passive:false});
+
+document.addEventListener('touchend', e=>{
+  clearTimeout(tdHoldTimer);
+  if(tdActive && tdGhost){
+    e.preventDefault();
+    const touch=e.changedTouches[0];
+    const cell=getCellAt(touch.clientX, touch.clientY);
+    removeGhost(); clearHL();
+    if(cell) placePiece(cell.r, cell.c);
+    tdActive=false; tdPiece=null; tdLastCell=null;
+  }
+}, {passive:false});
+
+document.addEventListener('touchcancel', ()=>{
+  clearTimeout(tdHoldTimer);
+  clearTimeout(placedTouchTimer);
+  removeGhost(); clearHL();
+  tdActive=false; tdPiece=null; tdLastCell=null;
+});
+
+// ═══════════════════════════════════════════════════════
 // MOBILE : taille dynamique des cellules
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
+let placedTouchTimer = null;
+
 function applyMobileGrid() {
   const isMobile = window.innerWidth <= 700;
   const grid = document.getElementById('disk-grid');
-  const coordsX = document.getElementById('grid-x-coords');
-  const coordsY = document.getElementById('grid-y-coords');
-
   if (isMobile) {
-    // Available width: screen - padding(10px) - coord-y(14px) - borders/gap
-    const available = window.innerWidth - 10 - 14 - 24; // margins + borders
-    const cellSize = Math.floor((available - 13) / 12); // 12 cols + gaps
-    const cs = Math.max(20, Math.min(cellSize, 46));
-
+    const available = window.innerWidth - 10 - 16 - 20;
+    const cs = Math.max(18, Math.min(Math.floor((available - 13) / 12), 46));
     grid.style.gridTemplateColumns = `repeat(12, ${cs}px)`;
     grid.style.gridTemplateRows    = `repeat(12, ${cs}px)`;
-
-    document.querySelectorAll('.cell').forEach(c => {
-      c.style.width = cs + 'px';
-      c.style.height = cs + 'px';
-    });
-    document.querySelectorAll('.coord-x').forEach(c => c.style.width  = cs + 'px');
-    document.querySelectorAll('.coord-y').forEach(c => c.style.height = cs + 'px');
+    document.querySelectorAll('.cell').forEach(c => { c.style.width=cs+'px'; c.style.height=cs+'px'; });
+    document.querySelectorAll('.coord-x').forEach(c => c.style.width  = cs+'px');
+    document.querySelectorAll('.coord-y').forEach(c => c.style.height = cs+'px');
   } else {
-    // Reset to desktop sizes
     grid.style.gridTemplateColumns = 'repeat(12, 46px)';
     grid.style.gridTemplateRows    = 'repeat(12, 46px)';
     document.querySelectorAll('.cell').forEach(c => { c.style.width='46px'; c.style.height='46px'; });
@@ -974,16 +1238,21 @@ function applyMobileGrid() {
 }
 window.addEventListener('resize', applyMobileGrid);
 
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 // INIT
-// ═══════════════════════════════
+// ═══════════════════════════════════════════════════════
 function init(){
   buildGrid();
   players=[createPlayer('Joueur 1')];
   renderTabs(); renderGrid(); renderPiecesPanel(); renderAllScores(); updateStatusBar();
   makeDraggable(document.getElementById('win-main'),  document.getElementById('main-titlebar'));
   makeDraggable(document.getElementById('win-info'),   document.getElementById('info-titlebar'));
+  attachGridTouchEvents();
   applyMobileGrid();
+  // Empêcher le zoom sur double-tap iOS sur les boutons
+  document.querySelectorAll('.action-btn,.add-player-btn,.player-tab').forEach(el=>{
+    el.addEventListener('touchend',e=>e.preventDefault(),{passive:false});
+  });
 }
 init();
 </script>
