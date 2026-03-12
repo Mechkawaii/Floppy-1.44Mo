@@ -8,14 +8,18 @@
   @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
 
   :root {
-    --win-bg: #d0d0d0;
-    --win-gray: #c0c0c0;
-    --win-dark: #808080;
-    --win-darker: #404040;
-    --win-white: #ffffff;
+    --win-bg: #b8b8c8;
+    --win-gray: #c8c8d8;
+    --win-panel: #c0c0d0;
+    --win-dark: #7070a0;
+    --win-darker: #2a2040;
+    --win-white: #e8e4f8;
     --win-black: #000000;
-    --win-title: #000080;
-    --win-pink: #f8f4ff;
+    --win-title: #5545a0;
+    --win-title2: #8070cc;
+    --win-menubar: #d0cce8;
+    --win-pink: #f5eef8;
+    --win-content: #f0ecfa;
     --grid-empty: #1a0a2e;
   }
 
@@ -27,6 +31,9 @@
     min-height: 100vh;
     overflow: hidden;
     cursor: default;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,255,255,0.04) 1px, rgba(255,255,255,0.04) 2px),
+      repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(255,255,255,0.04) 1px, rgba(255,255,255,0.04) 2px);
   }
 
   /* TASKBAR */
@@ -34,17 +41,17 @@
     position: fixed;
     bottom: 0; left: 0; right: 0;
     height: 30px;
-    background: var(--win-gray);
+    background: var(--win-panel);
     border-top: 2px solid var(--win-white);
     display: flex;
     align-items: center;
     padding: 2px 4px;
     gap: 4px;
     z-index: 1000;
-    box-shadow: inset -1px -1px #808080, inset 1px 1px #fff;
+    box-shadow: inset -1px -1px var(--win-dark), inset 1px 1px var(--win-white);
   }
   .start-btn {
-    background: var(--win-gray);
+    background: var(--win-panel);
     border-top: 2px solid var(--win-white);
     border-left: 2px solid var(--win-white);
     border-right: 2px solid var(--win-darker);
@@ -56,6 +63,7 @@
     cursor: pointer;
     height: 24px;
     display: flex; align-items: center; gap: 4px;
+    color: #1a0a3a;
   }
   .taskbar-clock {
     margin-left: auto;
@@ -63,11 +71,12 @@
     font-size: 15px;
     padding: 2px 10px;
     border: 1px solid var(--win-dark);
-    box-shadow: inset 1px 1px #808080;
-    background: var(--win-gray);
+    box-shadow: inset 1px 1px var(--win-dark);
+    background: var(--win-panel);
+    color: #1a0a3a;
   }
   .taskbar-item {
-    background: var(--win-gray);
+    background: var(--win-panel);
     border-top: 2px solid var(--win-darker);
     border-left: 2px solid var(--win-darker);
     border-right: 2px solid var(--win-white);
@@ -78,35 +87,34 @@
     height: 24px;
     display: flex; align-items: center; gap: 4px;
     cursor: pointer;
+    color: #1a0a3a;
   }
 
   /* WINDOW BASE */
   .win {
     position: absolute;
-    background: var(--win-gray);
-    border-top: 2px solid var(--win-white);
-    border-left: 2px solid var(--win-white);
-    border-right: 2px solid var(--win-darker);
-    border-bottom: 2px solid var(--win-darker);
-    box-shadow: 2px 2px 0 var(--win-black);
+    background: var(--win-panel);
+    border: 3px solid var(--win-darker);
+    box-shadow: 3px 3px 0 var(--win-black);
   }
   .win-titlebar {
-    background: linear-gradient(to right, #000080, #1084d0);
-    color: white;
+    background: var(--win-title);
+    color: #ede8ff;
     font-family: 'VT323', monospace;
     font-size: 16px;
     font-weight: bold;
-    padding: 2px 4px;
+    padding: 3px 6px;
     display: flex; align-items: center; justify-content: space-between;
     cursor: move;
     user-select: none;
-    height: 22px;
+    height: 26px;
+    border-bottom: 2px solid var(--win-darker);
   }
   .win-title-text { display: flex; align-items: center; gap: 6px; }
-  .win-controls { display: flex; gap: 2px; }
+  .win-controls { display: flex; gap: 3px; }
   .win-btn {
-    width: 16px; height: 14px;
-    background: var(--win-gray);
+    width: 18px; height: 16px;
+    background: var(--win-panel);
     border-top: 1px solid var(--win-white);
     border-left: 1px solid var(--win-white);
     border-right: 1px solid var(--win-darker);
@@ -114,26 +122,42 @@
     font-size: 11px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    color: black;
+    color: #1a0a3a;
     font-weight: bold;
     line-height: 1;
   }
   .win-btn.close:hover { background: #c00000; color: white; }
   .win-menubar {
-    background: var(--win-gray);
+    background: var(--win-menubar);
     padding: 1px 4px;
     font-family: 'VT323', monospace;
     font-size: 15px;
-    border-bottom: 1px solid var(--win-dark);
+    border-bottom: 2px solid var(--win-darker);
     display: flex; gap: 8px;
+    color: #1a0a3a;
   }
   .win-menubar span { padding: 1px 4px; cursor: pointer; }
-  .win-menubar span:hover { background: var(--win-title); color: white; }
+  .win-menubar span:hover { background: var(--win-title); color: #ede8ff; }
 
-  /* SCROLLBAR WIN95 */
+  /* SCROLLBAR */
   ::-webkit-scrollbar { width: 16px; height: 16px; }
-  ::-webkit-scrollbar-track { background: var(--win-gray); }
-  ::-webkit-scrollbar-thumb { background: var(--win-gray); border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white); border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker); }
+  ::-webkit-scrollbar-track { background: #a0a0b8; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--win-panel);
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+  }
+  ::-webkit-scrollbar-button {
+    background: var(--win-panel);
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+    display: flex; align-items: center; justify-content: center;
+    color: #1a0a3a; font-size: 8px;
+  }
 
   /* MAIN WINDOW */
   #win-main { top: 10px; left: 50%; transform: translateX(-50%); width: 1040px; }
@@ -194,13 +218,13 @@
   .piece-section-title {
     font-family: 'VT323', monospace;
     font-size: 14px;
-    color: var(--win-black);
+    color: #1a0a3a;
     padding: 2px 4px;
     border-bottom: 1px solid var(--win-dark);
     margin-bottom: 4px;
   }
   .pieces-scroll {
-    background: white;
+    background: var(--win-content);
     border-top: 2px solid var(--win-darker);
     border-left: 2px solid var(--win-darker);
     border-right: 2px solid var(--win-white);
@@ -222,18 +246,18 @@
     border-left: 2px solid var(--win-white);
     border-right: 2px solid var(--win-darker);
     border-bottom: 2px solid var(--win-darker);
-    background: var(--win-gray);
+    background: var(--win-panel);
     margin: 2px;
   }
-  .piece-preview:hover { background: #d8d8d8; }
+  .piece-preview:hover { background: #d8d4f0; }
   .piece-preview.selected {
     border-top: 2px solid var(--win-darker);
     border-left: 2px solid var(--win-darker);
     border-right: 2px solid var(--win-white);
     border-bottom: 2px solid var(--win-white);
-    background: #d0d0ff;
+    background: #c8c0f0;
   }
-  .p-cell { width: 12px; height: 12px; background: #e0e0e0; }
+  .p-cell { width: 12px; height: 12px; background: #b8b4d0; }
   .p-cell.on { border: 1px solid rgba(255,255,255,0.3); }
 
   /* SCORE */
@@ -270,14 +294,15 @@
     font-size: 15px;
     padding: 2px 14px;
     cursor: pointer;
-    background: #b0b0b0;
+    background: #a8a8c0;
     border-top: 2px solid var(--win-white);
     border-left: 2px solid var(--win-white);
     border-right: 2px solid var(--win-darker);
     border-bottom: 2px solid var(--win-darker);
+    color: #1a0a3a;
   }
-  .player-tab.active { background: var(--win-gray); border-bottom: 2px solid var(--win-gray); z-index:1; }
-  .player-tab:hover:not(.active) { background: #c8c8c8; }
+  .player-tab.active { background: var(--win-panel); border-bottom: 2px solid var(--win-panel); z-index:1; color: #1a0a3a; }
+  .player-tab:hover:not(.active) { background: #b8b8d0; }
 
   /* BUTTONS */
   .action-btn {
@@ -285,13 +310,14 @@
     font-size: 15px;
     padding: 3px 10px;
     cursor: pointer;
-    background: var(--win-gray);
+    background: var(--win-panel);
     border-top: 2px solid var(--win-white);
     border-left: 2px solid var(--win-white);
     border-right: 2px solid var(--win-darker);
     border-bottom: 2px solid var(--win-darker);
     height: 26px;
     display: flex; align-items: center; gap: 4px;
+    color: #1a0a3a;
   }
   .action-btn:active {
     border-top: 2px solid var(--win-darker);
@@ -301,37 +327,37 @@
   }
   .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .action-btn.danger { color: #880000; }
-  .action-btn.success { color: #005500; font-weight: bold; }
+  .action-btn.success { color: #004400; font-weight: bold; }
   .add-player-btn {
     font-family: 'VT323', monospace;
     font-size: 15px;
     padding: 2px 10px;
     cursor: pointer;
-    background: var(--win-gray);
+    background: var(--win-panel);
     border-top: 2px solid var(--win-white);
     border-left: 2px solid var(--win-white);
     border-right: 2px solid var(--win-darker);
     border-bottom: 2px solid var(--win-darker);
-    color: #004400;
+    color: #1a4400;
   }
 
   /* ACTION ROW */
-  .action-row { display: flex; gap: 4px; padding: 4px; background: var(--win-gray); border-top: 1px solid var(--win-dark); flex-wrap: wrap; }
-  .status-bar { background: var(--win-gray); border-top: 1px solid var(--win-dark); font-family: 'VT323', monospace; font-size: 14px; padding: 2px 6px; display: flex; gap: 8px; color: #333; }
+  .action-row { display: flex; gap: 4px; padding: 4px; background: var(--win-panel); border-top: 1px solid var(--win-dark); flex-wrap: wrap; }
+  .status-bar { background: var(--win-menubar); border-top: 2px solid var(--win-darker); font-family: 'VT323', monospace; font-size: 14px; padding: 2px 6px; display: flex; gap: 8px; color: #1a0a3a; }
   .status-section { border-right: 1px solid var(--win-dark); padding-right: 8px; }
   .sep { height: 2px; background: var(--win-darker); box-shadow: 0 1px 0 var(--win-white); margin: 4px 2px; }
-  .selected-piece-display { background: #0a0018; color: #a0c0ff; font-family: 'VT323', monospace; font-size: 15px; padding: 4px 8px; border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker); border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white); margin: 4px; min-height: 24px; }
+  .selected-piece-display { background: #0a0018; color: #c8b8ff; font-family: 'VT323', monospace; font-size: 15px; padding: 4px 8px; border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker); border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white); margin: 4px; min-height: 24px; }
 
   /* VICTORY */
   #victory-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; width: 380px; }
   #victory-modal.show { display: block; }
-  .victory-content { background: var(--win-gray); padding: 10px; text-align: center; }
+  .victory-content { background: var(--win-panel); padding: 10px; text-align: center; }
   .victory-icon { font-size: 52px; margin: 8px 0; }
   .victory-text { font-family: 'VT323', monospace; font-size: 24px; color: var(--win-black); margin: 8px 0; line-height: 1.3; }
 
   /* INFO WINDOW */
   #win-info { top: 40px; right: 20px; width: 260px; }
-  .info-body { background: var(--win-pink); font-family: 'VT323', monospace; font-size: 14px; padding: 8px; line-height: 1.7; border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker); border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white); color: #111; max-height: 220px; overflow-y: auto; }
+  .info-body { background: var(--win-content); font-family: 'VT323', monospace; font-size: 14px; padding: 8px; line-height: 1.7; border-top: 2px solid var(--win-darker); border-left: 2px solid var(--win-darker); border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white); color: #1a0a3a; max-height: 220px; overflow-y: auto; }
   .info-key { color: #5a2d82; font-weight: bold; }
 
   /* LOGO WINDOW */
@@ -382,18 +408,18 @@
   </div>
 
   <!-- PLAYER TABS -->
-  <div style="display:flex; align-items:flex-end; background:var(--win-gray); padding:4px 4px 0; gap:2px; border-bottom:2px solid var(--win-white);">
+  <div style="display:flex; align-items:flex-end; background:var(--win-panel); padding:4px 4px 0; gap:2px; border-bottom:2px solid var(--win-white);">
     <div id="player-tabs" style="display:flex; flex-wrap:wrap; gap:2px; flex:1;"></div>
     <button class="add-player-btn" onclick="addPlayer()">+ Joueur</button>
   </div>
 
-  <div style="display:flex; background:var(--win-gray);">
+  <div style="display:flex; background:var(--win-panel);">
 
     <!-- LEFT: GRID -->
-    <div style="flex:0 0 auto; padding:8px; background:var(--win-gray);">
+    <div style="flex:0 0 auto; padding:8px; background:var(--win-panel);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <span style="font-family:'VT323',monospace; font-size:15px; font-weight:bold;">c:/disquette/<span id="current-player-name">Joueur 1</span></span>
-        <span class="progress-label">Fichiers: <span id="file-count-display" style="color:#5a2d82; font-weight:bold;">0</span>/144</span>
+        <span style="font-family:'VT323',monospace; font-size:15px; font-weight:bold; color:#1a0a3a;">c:/disquette/<span id="current-player-name">Joueur 1</span></span>
+        <span class="progress-label" style="color:#1a0a3a;">Fichiers: <span id="file-count-display" style="color:#5a2d82; font-weight:bold;">0</span>/144</span>
       </div>
 
       <div class="disk-container">
@@ -439,20 +465,20 @@
     </div>
 
     <!-- RIGHT PANEL -->
-    <div style="flex:1; min-width:200px; max-width:240px; padding:6px; border-left:2px solid var(--win-dark);">
+    <div style="flex:1; min-width:200px; max-width:240px; padding:6px; border-left:2px solid var(--win-darker);">
       <div class="piece-section-title">📁 c:/blocs_fichiers</div>
       <div class="selected-piece-display" id="selected-piece-display">Cliquez une pièce ↓</div>
       <div class="pieces-scroll" id="pieces-panel"></div>
 
       <div class="sep"></div>
 
-      <div style="font-family:'VT323',monospace; font-size:14px; font-weight:bold; margin:4px 2px 2px;">🏆 Scores</div>
-      <div id="all-scores" style="background:white; border-top:2px solid var(--win-darker); border-left:2px solid var(--win-darker); border-right:2px solid var(--win-white); border-bottom:2px solid var(--win-white); padding:4px; font-family:'VT323',monospace; font-size:14px; min-height:60px;"></div>
+      <div style="font-family:'VT323',monospace; font-size:14px; font-weight:bold; margin:4px 2px 2px; color:#1a0a3a;">🏆 Scores</div>
+      <div id="all-scores" style="background:var(--win-content); border-top:2px solid var(--win-darker); border-left:2px solid var(--win-darker); border-right:2px solid var(--win-white); border-bottom:2px solid var(--win-white); padding:4px; font-family:'VT323',monospace; font-size:14px; min-height:60px; color:#1a0a3a;"></div>
 
       <div class="sep"></div>
 
-      <div style="font-family:'VT323',monospace; font-size:14px; font-weight:bold; margin:4px 2px 2px;">⚙️ TOOLS (case plateau)</div>
-      <div style="display:flex; flex-direction:column; gap:3px; padding:4px; background:white; border-top:2px solid var(--win-darker); border-left:2px solid var(--win-darker); border-right:2px solid var(--win-white); border-bottom:2px solid var(--win-white);">
+      <div style="font-family:'VT323',monospace; font-size:14px; font-weight:bold; margin:4px 2px 2px; color:#1a0a3a;">⚙️ TOOLS (case plateau)</div>
+      <div style="display:flex; flex-direction:column; gap:3px; padding:4px; background:var(--win-content); border-top:2px solid var(--win-darker); border-left:2px solid var(--win-darker); border-right:2px solid var(--win-white); border-bottom:2px solid var(--win-white);">
         <button class="action-btn" style="font-size:13px;" onclick="exchange5to1()">5×1 → 1×5</button>
         <button class="action-btn" style="font-size:13px;" onclick="exchange2to1()">2×5 → 1×10</button>
       </div>
