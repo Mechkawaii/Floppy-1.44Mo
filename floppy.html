@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floppy 1.44Mo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
+
+  :root {
+    --win-bg: #008080;
+    --win-gray: #c0c0c0;
+    --win-dark: #808080;
+    --win-darker: #404040;
+    --win-white: #ffffff;
+    --win-black: #000000;
+    --win-blue: #000080;
+    --win-title: #000080;
+    --win-pink: #f8e8f0;
+    --accent-purple: #5a2d82;
+    --grid-empty: #1a0a2e;
+    --grid-border: #3a2060;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'VT323', monospace;
+    background: var(--win-bg);
+    min-height: 100vh;
+    overflow: hidden;
+    cursor: default;
+    background-image: 
+      linear-gradient(45deg, #006060 25%, transparent 25%),
+      linear-gradient(-45deg, #006060 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #007070 75%),
+      linear-gradient(-45deg, transparent 75%, #007070 75%);
+    background-size: 4px 4px;
+    background-color: #008080;
+  }
+
+  /* TASKBAR */
+  .taskbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 28px;
+    background: var(--win-gray);
+    border-top: 2px solid var(--win-white);
+    display: flex;
+    align-items: center;
+    padding: 2px 4px;
+    gap: 4px;
+    z-index: 1000;
+    box-shadow: inset -1px -1px #808080, inset 1px 1px #fff;
+  }
+
+  .start-btn {
+    background: var(--win-gray);
+    border: none;
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 1px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+  }
+  .start-btn:active {
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+  }
+
+  .taskbar-clock {
+    margin-left: auto;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    padding: 2px 8px;
+    border: 1px solid var(--win-dark);
+    box-shadow: inset 1px 1px #808080;
+    background: var(--win-gray);
+  }
+
+  .taskbar-item {
+    background: var(--win-gray);
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    padding: 1px 8px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  /* WINDOW BASE */
+  .win {
+    position: absolute;
+    background: var(--win-gray);
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+    box-shadow: 2px 2px 0 var(--win-black);
+    min-width: 120px;
+  }
+
+  .win-titlebar {
+    background: linear-gradient(to right, var(--win-title), #1084d0);
+    color: white;
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 2px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: move;
+    user-select: none;
+    height: 20px;
+  }
+
+  .win-title-text { display: flex; align-items: center; gap: 4px; }
+
+  .win-controls { display: flex; gap: 2px; }
+  .win-btn {
+    width: 16px; height: 14px;
+    background: var(--win-gray);
+    border-top: 1px solid var(--win-white);
+    border-left: 1px solid var(--win-white);
+    border-right: 1px solid var(--win-darker);
+    border-bottom: 1px solid var(--win-darker);
+    font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-family: 'VT323', monospace;
+    color: black;
+    font-weight: bold;
+    line-height: 1;
+  }
+  .win-btn:hover { background: #d0d0d0; }
+  .win-btn.close:hover { background: #c00000; color: white; }
+
+  .win-menubar {
+    background: var(--win-gray);
+    padding: 1px 4px;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    border-bottom: 1px solid var(--win-dark);
+    display: flex; gap: 8px;
+  }
+  .win-menubar span { padding: 1px 4px; cursor: pointer; }
+  .win-menubar span:hover { background: var(--win-title); color: white; }
+
+  .win-content {
+    padding: 4px;
+    background: var(--win-gray);
+  }
+
+  .win-inset {
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    background: var(--win-pink);
+    overflow: hidden;
+  }
+
+  /* SCROLLBAR WIN95 */
+  ::-webkit-scrollbar { width: 16px; height: 16px; }
+  ::-webkit-scrollbar-track { background: var(--win-gray); }
+  ::-webkit-scrollbar-thumb { background: var(--win-gray); border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white); border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker); }
+  ::-webkit-scrollbar-button { background: var(--win-gray); border-top: 2px solid var(--win-white); border-left: 2px solid var(--win-white); border-right: 2px solid var(--win-darker); border-bottom: 2px solid var(--win-darker); }
+
+  /* ===== MAIN GAME WINDOW ===== */
+  #win-main {
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+  }
+
+  /* DISQUETTE GRID 12x12 */
+  .disk-container {
+    background: var(--grid-empty);
+    padding: 4px;
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+  }
+
+  .grid-header {
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    color: #00ff88;
+    background: #0a0018;
+    padding: 2px 6px;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #00ff88;
+  }
+
+  #disk-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 28px);
+    grid-template-rows: repeat(12, 28px);
+    gap: 1px;
+    background: #0f0520;
+    padding: 4px;
+    border: 1px solid #3a2060;
+  }
+
+  .cell {
+    width: 28px; height: 28px;
+    background: #1a0a2e;
+    border: 1px solid #2a1050;
+    cursor: pointer;
+    transition: background 0.1s;
+    position: relative;
+  }
+  .cell:hover { background: #2a1060; border-color: #6040a0; }
+  .cell.filled { cursor: default; }
+  .cell.filled:hover { background: inherit; }
+  .cell.highlight { background: #2a1060 !important; border-color: #a060ff !important; }
+  .cell.invalid { background: #3a0010 !important; border-color: #ff0040 !important; }
+
+  /* File block colors */
+  .color-0 { background: #5a2d82; border-color: #8040c0; }
+  .color-1 { background: #1a4a8a; border-color: #2060c0; }
+  .color-2 { background: #1a6a3a; border-color: #20a060; }
+  .color-3 { background: #6a3a1a; border-color: #c06020; }
+  .color-4 { background: #6a1a3a; border-color: #c02060; }
+  .color-5 { background: #1a5a5a; border-color: #20a0a0; }
+  .color-6 { background: #5a5a1a; border-color: #a0a020; }
+  .color-7 { background: #3a1a6a; border-color: #6030c0; }
+
+  /* PIECES PANEL */
+  .pieces-panel {
+    background: var(--win-gray);
+    padding: 4px;
+  }
+
+  .piece-section-title {
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    color: var(--win-black);
+    background: var(--win-gray);
+    padding: 2px 4px;
+    border-bottom: 1px solid var(--win-dark);
+    margin-bottom: 4px;
+  }
+
+  .pieces-scroll {
+    background: white;
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .piece-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .piece-label {
+    font-family: 'VT323', monospace;
+    font-size: 12px;
+    color: #444;
+    min-width: 60px;
+  }
+
+  .piece-preview {
+    display: grid;
+    gap: 1px;
+    cursor: pointer;
+    padding: 3px;
+    border: 2px solid transparent;
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+    background: var(--win-gray);
+    transition: all 0.1s;
+    margin: 2px;
+  }
+  .piece-preview:hover {
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+  }
+  .piece-preview.selected {
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    background: #d0d0ff;
+  }
+  .piece-preview.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .p-cell {
+    width: 10px; height: 10px;
+    background: #1a0a2e;
+  }
+  .p-cell.on { background: #7040c0; border: 1px solid #a060ff; }
+
+  /* ROTATION BTN */
+  .rotate-btn {
+    background: var(--win-gray);
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    padding: 2px 8px;
+    cursor: pointer;
+    height: 22px;
+  }
+  .rotate-btn:active {
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+  }
+
+  /* SCORE PANEL */
+  .score-display {
+    background: #0a0018;
+    color: #00ff88;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 6px 10px;
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    margin: 4px 0;
+  }
+
+  .score-bar {
+    height: 16px;
+    background: #0a0018;
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    position: relative;
+    overflow: hidden;
+  }
+  .score-fill {
+    height: 100%;
+    background: linear-gradient(to right, #5a2d82, #00ff88);
+    transition: width 0.3s;
+  }
+
+  /* PLAYER TABS */
+  .player-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 4px 4px 0;
+    background: var(--win-gray);
+  }
+  .player-tab {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    padding: 2px 12px;
+    cursor: pointer;
+    background: var(--win-gray);
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+    position: relative;
+    top: 0;
+  }
+  .player-tab.active {
+    background: #e8d8ff;
+    border-bottom: 2px solid #e8d8ff;
+    z-index: 1;
+    top: 0;
+  }
+  .player-tab:hover:not(.active) { background: #d8d8d8; }
+
+  /* ADD PLAYER */
+  .add-player-btn {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    padding: 2px 8px;
+    cursor: pointer;
+    background: var(--win-gray);
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+    color: #004400;
+  }
+  .add-player-btn:active {
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    background: var(--win-gray);
+    border-top: 1px solid var(--win-dark);
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    padding: 2px 6px;
+    display: flex;
+    gap: 8px;
+    color: #333;
+  }
+  .status-section {
+    border-right: 1px solid var(--win-dark);
+    padding-right: 8px;
+  }
+
+  /* ACTION BUTTONS */
+  .action-row {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--win-gray);
+    border-top: 1px solid var(--win-dark);
+  }
+
+  .action-btn {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    padding: 3px 10px;
+    cursor: pointer;
+    background: var(--win-gray);
+    border-top: 2px solid var(--win-white);
+    border-left: 2px solid var(--win-white);
+    border-right: 2px solid var(--win-darker);
+    border-bottom: 2px solid var(--win-darker);
+    height: 24px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .action-btn:active, .action-btn.pressed {
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+  }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .action-btn.danger { color: #880000; }
+  .action-btn.success { color: #005500; font-weight: bold; }
+
+  /* VICTORY POPUP */
+  #victory-modal {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+    width: 360px;
+  }
+  #victory-modal.show { display: block; }
+
+  .victory-content {
+    background: var(--win-gray);
+    padding: 8px;
+    text-align: center;
+  }
+  .victory-icon { font-size: 48px; margin: 8px 0; }
+  .victory-text {
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    color: var(--win-black);
+    margin: 8px 0;
+    line-height: 1.3;
+  }
+
+  /* MINI INFO WINDOW */
+  #win-info {
+    top: 30px; right: 20px;
+    width: 240px;
+  }
+
+  .info-body {
+    background: var(--win-pink);
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    padding: 6px;
+    line-height: 1.6;
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    color: #111;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .info-key { color: #5a2d82; font-weight: bold; }
+
+  /* DRAG FEEDBACK */
+  .dragging-indicator {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.7;
+    display: none;
+  }
+
+  /* PIECE SELECTION HIGHLIGHT */
+  .selected-piece-display {
+    background: #0a0018;
+    color: #a0c0ff;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    margin: 4px;
+    min-height: 22px;
+  }
+
+  /* SEPARATOR */
+  .sep {
+    height: 2px;
+    background: var(--win-darker);
+    box-shadow: 0 1px 0 var(--win-white);
+    margin: 4px 2px;
+  }
+
+  /* Grid coords */
+  .grid-coords {
+    display: flex;
+    padding-left: 4px;
+    gap: 1px;
+    background: #0f0520;
+    padding: 0 4px 2px 32px;
+  }
+  .coord-num {
+    width: 28px;
+    font-family: 'VT323', monospace;
+    font-size: 10px;
+    color: #6040a0;
+    text-align: center;
+  }
+
+  .grid-wrapper {
+    display: flex;
+    gap: 4px;
+    align-items: flex-start;
+    background: #0f0520;
+    padding: 4px;
+  }
+  .grid-y-coords {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding-top: 0;
+  }
+  .coord-num-y {
+    height: 28px;
+    font-family: 'VT323', monospace;
+    font-size: 10px;
+    color: #6040a0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 16px;
+  }
+
+  /* PROGRESS INDICATOR */
+  .progress-label {
+    font-family: 'VT323', monospace;
+    font-size: 12px;
+    color: #333;
+    text-align: right;
+    padding: 0 4px;
+  }
+
+  .win95-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .win95-checkbox input[type=checkbox] {
+    width: 12px; height: 12px;
+    appearance: none;
+    background: white;
+    border-top: 2px solid var(--win-darker);
+    border-left: 2px solid var(--win-darker);
+    border-right: 2px solid var(--win-white);
+    border-bottom: 2px solid var(--win-white);
+    cursor: pointer;
+    position: relative;
+  }
+  .win95-checkbox input[type=checkbox]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: -4px; left: 0;
+    font-size: 12px;
+    color: black;
+  }
+</style>
+</head>
+<body>
+
+<!-- MAIN GAME WINDOW -->
+<div class="win" id="win-main">
+  <div class="win-titlebar" id="main-titlebar">
+    <span class="win-title-text">💾 Floppy_1.44Mo.exe</span>
+    <div class="win-controls">
+      <div class="win-btn">_</div>
+      <div class="win-btn">□</div>
+      <div class="win-btn close" onclick="document.getElementById('win-main').style.display='none'">✕</div>
+    </div>
+  </div>
+  <div class="win-menubar">
+    <span>Fichier</span>
+    <span>Édition</span>
+    <span>Affichage</span>
+    <span>Aide</span>
+  </div>
+
+  <!-- PLAYER TABS -->
+  <div style="display:flex; align-items:flex-end; background:var(--win-gray); padding:4px 4px 0; gap:2px;">
+    <div id="player-tabs" class="player-tabs" style="padding:0; flex:1; display:flex; flex-wrap:wrap; gap:2px;"></div>
+    <button class="add-player-btn" onclick="addPlayer()">+ Joueur</button>
+  </div>
+
+  <div style="display:flex; gap:0; background:var(--win-gray); border-top: 2px solid var(--win-white);">
+
+    <!-- LEFT: GRID PANEL -->
+    <div style="flex:0 0 auto; padding:6px; background:var(--win-gray);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+        <span style="font-family:'VT323',monospace; font-size:14px; font-weight:bold;">c:/disquette/<span id="current-player-name">Joueur 1</span></span>
+        <span class="progress-label">Fichiers: <span id="file-count-display" style="color:#5a2d82; font-weight:bold;">0</span>/144</span>
+      </div>
+
+      <div class="disk-container">
+        <div class="grid-header">
+          <span>FLOPPY 1.44Mo — <span id="player-disk-label">Joueur 1</span></span>
+          <span id="grid-status">PRÊT</span>
+        </div>
+        <!-- GRID COORDS TOP -->
+        <div style="display:flex; padding:0 4px 0 24px; background:#0f0520;">
+          <div id="grid-x-coords" style="display:flex; gap:1px;"></div>
+        </div>
+        <div class="grid-wrapper">
+          <div class="grid-y-coords" id="grid-y-coords"></div>
+          <div id="disk-grid"></div>
+        </div>
+      </div>
+
+      <!-- SCORE PROGRESS -->
+      <div style="margin-top:6px;">
+        <div class="score-display">
+          DONNÉES: <span id="score-value">0</span>/144 Mo &nbsp;|&nbsp; <span id="score-percent">0%</span>
+        </div>
+        <div class="score-bar">
+          <div class="score-fill" id="score-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div class="action-row">
+        <button class="action-btn" onclick="rotateSelected()">↻ Rotation</button>
+        <button class="action-btn" onclick="clearLastPlaced()">↩ Annuler</button>
+        <button class="action-btn danger" onclick="clearCurrentDisk()">🗑 Vider</button>
+        <button class="action-btn" onclick="runDefrag()" id="defrag-btn">⚙ DEFRAG</button>
+        <button class="action-btn success" id="backup-btn" onclick="toggleBackup()">💾 BACKUP</button>
+      </div>
+
+      <div class="status-bar">
+        <span class="status-section" id="status-piece">Aucune pièce sélectionnée</span>
+        <span class="status-section" id="status-backup">BACKUP: OFF</span>
+        <span id="status-defrag">DEFRAG: 1 dispo</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: PIECES + INFO -->
+    <div style="flex:1; min-width:180px; max-width:220px; padding:6px; border-left:2px solid var(--win-dark);">
+
+      <div class="piece-section-title">📁 c:/blocs_fichiers</div>
+
+      <!-- Selected piece display -->
+      <div class="selected-piece-display" id="selected-piece-display">Cliquez une pièce ↓</div>
+
+      <div class="pieces-scroll" id="pieces-panel">
+        <!-- Pieces injected by JS -->
+      </div>
+
+      <div class="sep"></div>
+
+      <!-- ALL PLAYERS SCORES -->
+      <div style="font-family:'VT323',monospace; font-size:13px; font-weight:bold; margin:4px 2px 2px;">🏆 Scores</div>
+      <div id="all-scores" style="background:white; border-top:2px solid var(--win-darker); border-left:2px solid var(--win-darker); border-right:2px solid var(--win-white); border-bottom:2px solid var(--win-white); padding:4px; font-family:'VT323',monospace; font-size:13px; min-height:60px;"></div>
+
+      <div class="sep"></div>
+
+      <!-- TOOLS options -->
+      <div style="font-family:'VT323',monospace; font-size:13px; font-weight:bold; margin:4px 2px 2px;">⚙️ TOOLS</div>
+      <div style="display:flex; flex-direction:column; gap:3px; padding:4px; background:white; border-top:2px solid var(--win-darker); border-left:2px solid var(--win-darker); border-right:2px solid var(--win-white); border-bottom:2px solid var(--win-white);">
+        <button class="action-btn" style="font-size:12px;" onclick="exchange5to1()">5×1 → 1×5</button>
+        <button class="action-btn" style="font-size:12px;" onclick="exchange2to1()">2×5 → 1×10</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- INFO WINDOW -->
+<div class="win" id="win-info">
+  <div class="win-titlebar" id="info-titlebar">
+    <span class="win-title-text">ℹ️ Objectifs.doc</span>
+    <div class="win-controls">
+      <div class="win-btn close" onclick="document.getElementById('win-info').style.display='none'">✕</div>
+    </div>
+  </div>
+  <div class="info-body">
+    <span class="info-key">OBJECTIF :</span><br>
+    Remplir exactement <b>144</b> cases de ta disquette 12×12.<br><br>
+    <span class="info-key">VICTOIRE :</span><br>
+    144 fichiers + être entre BACKUP et BOOT.<br><br>
+    <span class="info-key">PIÈCES :</span><br>
+    • 1 fichier (1 case)<br>
+    • 5 fichiers (formes T, L, I)<br>
+    • 10 fichiers (formes I, II)<br><br>
+    <span class="info-key">DEFRAG :</span><br>
+    1× par partie. Réorganise la disquette (−5 données ou passe ton tour).<br><br>
+    <span class="info-key">CONTRÔLES :</span><br>
+    Clic = sélectionner pièce<br>
+    ↻ = rotation<br>
+    Clic grille = placer
+  </div>
+</div>
+
+<!-- VICTORY MODAL -->
+<div id="victory-modal" class="win">
+  <div class="win-titlebar">
+    <span class="win-title-text">🏆 victoire.txt</span>
+    <div class="win-controls">
+      <div class="win-btn close" onclick="document.getElementById('victory-modal').classList.remove('show')">✕</div>
+    </div>
+  </div>
+  <div class="victory-content">
+    <div class="victory-icon">💾</div>
+    <div class="victory-text" id="victory-text">DISQUETTE PLEINE !<br>144/144 Mo enregistrés !</div>
+    <div style="margin:8px 0; display:flex; gap:4px; justify-content:center;">
+      <button class="action-btn success" onclick="document.getElementById('victory-modal').classList.remove('show')">OK</button>
+      <button class="action-btn" onclick="resetAll()">Nouvelle partie</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASKBAR -->
+<div class="taskbar">
+  <button class="start-btn">🪟 START</button>
+  <div class="taskbar-item" onclick="document.getElementById('win-main').style.display='block'">💾 Floppy_1.44Mo</div>
+  <div class="taskbar-item" onclick="document.getElementById('win-info').style.display='block'">ℹ️ Objectifs.doc</div>
+  <div class="taskbar-clock" id="clock">22:10</div>
+</div>
+
+<script>
+// ===== PIECE DEFINITIONS =====
+const PIECE_DEFS = [
+  { id: 'one_1', name: '1 fichier', size: 1, shape: [[1]], color: 0 },
+  // 5-file pieces
+  { id: 'five_T', name: '5 fich. T', size: 5, shape: [[1,1,1],[0,1,0],[0,1,0]], color: 1 },
+  { id: 'five_L', name: '5 fich. L', size: 5, shape: [[1,0],[1,0],[1,0],[1,1]], color: 2 },
+  { id: 'five_I', name: '5 fich. I', size: 5, shape: [[1],[1],[1],[1],[1]], color: 3 },
+  { id: 'five_S', name: '5 fich. S', size: 5, shape: [[0,1,1],[1,1,0],[1,0,0]], color: 4 },
+  // 10-file pieces
+  { id: 'ten_I',  name: '10 fich. I', size: 10, shape: [[1,1,1,1,1,1,1,1,1,1]], color: 5 },
+  { id: 'ten_II', name: '10 fich. II', size: 10, shape: [[1,1,1,1,1],[1,1,1,1,1]], color: 6 },
+  { id: 'ten_L',  name: '10 fich. L', size: 10, shape: [[1,0],[1,0],[1,0],[1,0],[1,0],[1,0],[1,0],[1,0],[1,1],[0,1]], color: 7 },
+];
+
+// ===== STATE =====
+let players = [];
+let currentPlayerIdx = 0;
+let selectedPiece = null;
+let selectedPieceDef = null;
+let rotation = 0;
+let lastPlaced = null; // {playerIdx, cells}
+const GRID_SIZE = 12;
+
+function createPlayer(name) {
+  return {
+    name,
+    grid: Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null)),
+    score: 0,
+    backupActive: false,
+    defragUsed: false,
+    lastPieceId: null,
+  };
+}
+
+function addPlayer() {
+  if (players.length >= 6) return;
+  const idx = players.length + 1;
+  players.push(createPlayer('Joueur ' + idx));
+  renderTabs();
+  renderAllScores();
+}
+
+// ===== ROTATION =====
+function rotatePiece(shape) {
+  const rows = shape.length, cols = shape[0].length;
+  const newShape = Array(cols).fill(null).map(() => Array(rows).fill(0));
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++)
+      newShape[c][rows - 1 - r] = shape[r][c];
+  return newShape;
+}
+
+function getRotatedShape() {
+  if (!selectedPieceDef) return null;
+  let s = selectedPieceDef.shape;
+  for (let i = 0; i < rotation; i++) s = rotatePiece(s);
+  return s;
+}
+
+function rotateSelected() {
+  if (!selectedPieceDef) return;
+  rotation = (rotation + 1) % 4;
+  updatePiecePreviewHighlight();
+  renderPiecesPanel();
+  document.getElementById('selected-piece-display').textContent =
+    selectedPieceDef.name + ' | Rot: ' + (rotation * 90) + '°';
+}
+
+// ===== GRID INIT =====
+function buildGrid() {
+  const grid = document.getElementById('disk-grid');
+  grid.innerHTML = '';
+  const xCoords = document.getElementById('grid-x-coords');
+  xCoords.innerHTML = '';
+  const yCoords = document.getElementById('grid-y-coords');
+  yCoords.innerHTML = '';
+
+  for (let c = 1; c <= GRID_SIZE; c++) {
+    const d = document.createElement('div');
+    d.className = 'coord-num';
+    d.textContent = c;
+    xCoords.appendChild(d);
+  }
+  for (let r = 1; r <= GRID_SIZE; r++) {
+    const d = document.createElement('div');
+    d.className = 'coord-num-y';
+    d.textContent = r;
+    yCoords.appendChild(d);
+  }
+
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      cell.addEventListener('mouseenter', () => highlightCells(r, c));
+      cell.addEventListener('mouseleave', clearHighlight);
+      cell.addEventListener('click', () => placePiece(r, c));
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function getCellEl(r, c) {
+  return document.querySelector(`#disk-grid .cell[data-r="${r}"][data-c="${c}"]`);
+}
+
+// ===== RENDER GRID FROM PLAYER STATE =====
+function renderGrid() {
+  const p = players[currentPlayerIdx];
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const cell = getCellEl(r, c);
+      if (!cell) continue;
+      const val = p.grid[r][c];
+      cell.className = 'cell';
+      if (val !== null) {
+        cell.classList.add('filled', 'color-' + val);
+      }
+    }
+  }
+  updateScore();
+}
+
+// ===== HIGHLIGHT =====
+function getCellsForPiece(r, c) {
+  const shape = getRotatedShape();
+  if (!shape) return [];
+  const cells = [];
+  for (let dr = 0; dr < shape.length; dr++) {
+    for (let dc = 0; dc < shape[dr].length; dc++) {
+      if (shape[dr][dc]) cells.push([r + dr, c + dc]);
+    }
+  }
+  return cells;
+}
+
+function highlightCells(r, c) {
+  if (!selectedPieceDef) return;
+  clearHighlight();
+  const cells = getCellsForPiece(r, c);
+  const p = players[currentPlayerIdx];
+  let valid = true;
+  for (const [nr, nc] of cells) {
+    if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE || p.grid[nr][nc] !== null) {
+      valid = false; break;
+    }
+  }
+  for (const [nr, nc] of cells) {
+    const el = getCellEl(nr, nc);
+    if (el && p.grid[nr][nc] === null) {
+      el.classList.add(valid ? 'highlight' : 'invalid');
+    }
+  }
+}
+
+function clearHighlight() {
+  document.querySelectorAll('#disk-grid .cell.highlight, #disk-grid .cell.invalid').forEach(el => {
+    el.classList.remove('highlight', 'invalid');
+  });
+}
+
+// ===== PLACE PIECE =====
+function placePiece(r, c) {
+  if (!selectedPieceDef) return;
+  const p = players[currentPlayerIdx];
+  const cells = getCellsForPiece(r, c);
+
+  // Validate
+  for (const [nr, nc] of cells) {
+    if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE || p.grid[nr][nc] !== null) return;
+  }
+
+  // Check: can't use same piece shape two turns in a row (except 1-file)
+  if (selectedPieceDef.size !== 1 && p.lastPieceId === selectedPieceDef.id) {
+    showStatus('Impossible! Même pièce deux fois de suite!');
+    return;
+  }
+
+  // Place
+  const colorIdx = selectedPieceDef.color;
+  for (const [nr, nc] of cells) {
+    p.grid[nr][nc] = colorIdx;
+  }
+  lastPlaced = { playerIdx: currentPlayerIdx, cells, colorIdx };
+  p.lastPieceId = selectedPieceDef.id;
+
+  renderGrid();
+  updateScore();
+  checkVictory();
+  document.getElementById('status-piece').textContent = 'Placé: ' + selectedPieceDef.name;
+}
+
+// ===== UNDO LAST PLACE =====
+function clearLastPlaced() {
+  if (!lastPlaced || lastPlaced.playerIdx !== currentPlayerIdx) return;
+  const p = players[lastPlaced.playerIdx];
+  for (const [r, c] of lastPlaced.cells) p.grid[r][c] = null;
+  p.lastPieceId = null;
+  lastPlaced = null;
+  renderGrid();
+  updateScore();
+}
+
+// ===== SCORE =====
+function updateScore() {
+  const p = players[currentPlayerIdx];
+  let count = 0;
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      if (p.grid[r][c] !== null) count++;
+  p.score = count;
+  document.getElementById('score-value').textContent = count;
+  document.getElementById('score-percent').textContent = Math.round(count / 144 * 100) + '%';
+  document.getElementById('score-fill').style.width = (count / 144 * 100) + '%';
+  document.getElementById('file-count-display').textContent = count;
+  renderAllScores();
+}
+
+function renderAllScores() {
+  const el = document.getElementById('all-scores');
+  el.innerHTML = players.map((p, i) => {
+    const pct = Math.round(p.score / 144 * 100);
+    const isActive = i === currentPlayerIdx;
+    return `<div style="margin-bottom:3px; ${isActive ? 'color:#5a2d82; font-weight:bold;' : ''}">
+      ${isActive ? '▶' : '　'} ${p.name}: ${p.score}/144 (${pct}%)
+      ${p.backupActive ? ' 💾' : ''}
+    </div>`;
+  }).join('');
+}
+
+// ===== TABS =====
+function renderTabs() {
+  const el = document.getElementById('player-tabs');
+  el.innerHTML = players.map((p, i) =>
+    `<div class="player-tab ${i === currentPlayerIdx ? 'active' : ''}" onclick="switchPlayer(${i})">${p.name}</div>`
+  ).join('');
+  document.getElementById('current-player-name').textContent = players[currentPlayerIdx]?.name || '';
+  document.getElementById('player-disk-label').textContent = players[currentPlayerIdx]?.name || '';
+}
+
+function switchPlayer(idx) {
+  currentPlayerIdx = idx;
+  rotation = 0;
+  selectedPiece = null;
+  selectedPieceDef = null;
+  renderTabs();
+  renderGrid();
+  renderPiecesPanel();
+  updateStatusBar();
+  document.getElementById('selected-piece-display').textContent = 'Cliquez une pièce ↓';
+}
+
+// ===== PIECES PANEL =====
+function renderPiecesPanel() {
+  const panel = document.getElementById('pieces-panel');
+  panel.innerHTML = '';
+
+  // Group by size
+  const groups = [
+    { label: '1 FICHIER', pieces: PIECE_DEFS.filter(p => p.size === 1) },
+    { label: '5 FICHIERS', pieces: PIECE_DEFS.filter(p => p.size === 5) },
+    { label: '10 FICHIERS', pieces: PIECE_DEFS.filter(p => p.size === 10) },
+  ];
+
+  for (const group of groups) {
+    const title = document.createElement('div');
+    title.style.cssText = 'font-family:VT323,monospace;font-size:12px;color:#888;border-bottom:1px solid #ccc;margin-bottom:2px;';
+    title.textContent = '— ' + group.label + ' —';
+    panel.appendChild(title);
+
+    const row = document.createElement('div');
+    row.className = 'piece-row';
+    for (const pDef of group.pieces) {
+      const preview = createPiecePreview(pDef);
+      row.appendChild(preview);
+    }
+    panel.appendChild(row);
+  }
+}
+
+function createPiecePreview(pDef) {
+  let shape = pDef.shape;
+  if (selectedPieceDef && selectedPieceDef.id === pDef.id) {
+    for (let i = 0; i < rotation; i++) shape = rotatePiece(shape);
+  }
+  const rows = shape.length, cols = shape[0].length;
+
+  const container = document.createElement('div');
+  container.title = pDef.name;
+
+  const preview = document.createElement('div');
+  preview.className = 'piece-preview' + (selectedPieceDef?.id === pDef.id ? ' selected' : '');
+  preview.style.gridTemplateColumns = `repeat(${cols}, 10px)`;
+  preview.style.gridTemplateRows = `repeat(${rows}, 10px)`;
+  preview.style.display = 'grid';
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'p-cell' + (shape[r][c] ? ' on' : '');
+      if (shape[r][c]) cell.style.background = getColor(pDef.color);
+      preview.appendChild(cell);
+    }
+  }
+
+  const label = document.createElement('div');
+  label.style.cssText = 'font-family:VT323,monospace;font-size:10px;text-align:center;color:#555;margin-top:1px;';
+  label.textContent = pDef.name;
+
+  container.appendChild(preview);
+  container.appendChild(label);
+  container.addEventListener('click', () => selectPiece(pDef));
+  return container;
+}
+
+function getColor(colorIdx) {
+  const colors = ['#7040c0','#2060c0','#20a060','#c06020','#c02060','#20a0a0','#a0a020','#6030c0'];
+  return colors[colorIdx] || '#7040c0';
+}
+
+function selectPiece(pDef) {
+  selectedPieceDef = pDef;
+  rotation = 0;
+  renderPiecesPanel();
+  document.getElementById('selected-piece-display').textContent = pDef.name + ' — ' + pDef.size + ' fichier(s)';
+  document.getElementById('status-piece').textContent = 'Sélectionné: ' + pDef.name;
+}
+
+function updatePiecePreviewHighlight() {
+  renderPiecesPanel();
+}
+
+// ===== DEFRAG =====
+function runDefrag() {
+  const p = players[currentPlayerIdx];
+  if (p.defragUsed) { alert('DEFRAG déjà utilisé ce tour !'); return; }
+  if (!confirm('DEFRAG: Réorganiser ta disquette et perdre 5 fichiers ?')) return;
+  // Remove 5 random files
+  let removed = 0;
+  outer: for (let r = 0; r < GRID_SIZE && removed < 5; r++)
+    for (let c = 0; c < GRID_SIZE && removed < 5; c++)
+      if (p.grid[r][c] !== null) { p.grid[r][c] = null; removed++; }
+  p.defragUsed = true;
+  document.getElementById('defrag-btn').disabled = true;
+  document.getElementById('status-defrag').textContent = 'DEFRAG: utilisé';
+  renderGrid();
+}
+
+// ===== BACKUP TOGGLE =====
+function toggleBackup() {
+  const p = players[currentPlayerIdx];
+  p.backupActive = !p.backupActive;
+  updateStatusBar();
+  renderAllScores();
+}
+
+function updateStatusBar() {
+  const p = players[currentPlayerIdx];
+  document.getElementById('status-backup').textContent = 'BACKUP: ' + (p.backupActive ? 'ON 💾' : 'OFF');
+  document.getElementById('status-defrag').textContent = 'DEFRAG: ' + (p.defragUsed ? 'utilisé' : '1 dispo');
+  document.getElementById('backup-btn').textContent = p.backupActive ? '💾 BACKUP ON' : '💾 BACKUP';
+}
+
+// ===== TOOLS EXCHANGE =====
+function exchange5to1() {
+  const p = players[currentPlayerIdx];
+  if (!confirm('Échanger 5 blocs de 1 contre 1 bloc de 5 ?')) return;
+  let removed = 0;
+  for (let r = 0; r < GRID_SIZE && removed < 5; r++)
+    for (let c = 0; c < GRID_SIZE && removed < 5; c++)
+      if (p.grid[r][c] !== null) { p.grid[r][c] = null; removed++; }
+  // Place 5-file piece in first available spot
+  placeFirstAvailable(5, 1);
+  renderGrid();
+}
+
+function exchange2to1() {
+  const p = players[currentPlayerIdx];
+  if (!confirm('Échanger 2 blocs de 5 contre 1 bloc de 10 ?')) return;
+  let removed = 0;
+  for (let r = 0; r < GRID_SIZE && removed < 10; r++)
+    for (let c = 0; c < GRID_SIZE && removed < 10; c++)
+      if (p.grid[r][c] !== null) { p.grid[r][c] = null; removed++; }
+  placeFirstAvailable(10, 5);
+  renderGrid();
+}
+
+function placeFirstAvailable(count, colorIdx) {
+  const p = players[currentPlayerIdx];
+  let placed = 0;
+  for (let r = 0; r < GRID_SIZE && placed < count; r++)
+    for (let c = 0; c < GRID_SIZE && placed < count; c++)
+      if (p.grid[r][c] === null) { p.grid[r][c] = colorIdx; placed++; }
+  updateScore();
+}
+
+// ===== CLEAR =====
+function clearCurrentDisk() {
+  if (!confirm('Vider la disquette de ' + players[currentPlayerIdx].name + ' ?')) return;
+  const p = players[currentPlayerIdx];
+  p.grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+  p.score = 0;
+  lastPlaced = null;
+  renderGrid();
+}
+
+// ===== VICTORY CHECK =====
+function checkVictory() {
+  const p = players[currentPlayerIdx];
+  if (p.score === 144 && p.backupActive) {
+    document.getElementById('victory-text').innerHTML =
+      `VICTOIRE !<br>${p.name} remporte la partie !<br>💾 144/144 Mo enregistrés !`;
+    document.getElementById('victory-modal').classList.add('show');
+    document.getElementById('grid-status').textContent = '🏆 VICTOIRE!';
+  } else if (p.score === 144) {
+    document.getElementById('grid-status').textContent = '144 — active BACKUP!';
+  }
+}
+
+function showStatus(msg) {
+  document.getElementById('status-piece').textContent = msg;
+  setTimeout(() => {
+    document.getElementById('status-piece').textContent = selectedPieceDef ? 'Sélectionné: ' + selectedPieceDef.name : 'Aucune pièce sélectionnée';
+  }, 2000);
+}
+
+// ===== RESET =====
+function resetAll() {
+  players = players.map(p => createPlayer(p.name));
+  lastPlaced = null;
+  selectedPieceDef = null;
+  rotation = 0;
+  document.getElementById('victory-modal').classList.remove('show');
+  renderTabs();
+  renderGrid();
+  renderPiecesPanel();
+  renderAllScores();
+  updateStatusBar();
+}
+
+// ===== CLOCK =====
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ===== DRAGGABLE WINDOWS =====
+function makeDraggable(win, handle) {
+  let isDragging = false, ox = 0, oy = 0;
+  handle.addEventListener('mousedown', e => {
+    isDragging = true;
+    ox = e.clientX - win.offsetLeft;
+    oy = e.clientY - win.offsetTop;
+    win.style.zIndex = 100;
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    win.style.left = (e.clientX - ox) + 'px';
+    win.style.top = (e.clientY - oy) + 'px';
+    win.style.transform = 'none';
+  });
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    document.body.style.userSelect = '';
+  });
+}
+
+// ===== INIT =====
+function init() {
+  buildGrid();
+  players = [createPlayer('Joueur 1')];
+  renderTabs();
+  renderGrid();
+  renderPiecesPanel();
+  renderAllScores();
+  updateStatusBar();
+  makeDraggable(document.getElementById('win-main'), document.getElementById('main-titlebar'));
+  makeDraggable(document.getElementById('win-info'), document.getElementById('info-titlebar'));
+}
+
+init();
+</script>
+</body>
+</html>
