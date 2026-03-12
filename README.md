@@ -116,6 +116,6 @@ FLOPPY est un jeu de société original. Tous droits réservés.
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.44Mo-purple?style=flat-square"/>
-  <img src="https://img.shields.io/badge/joueurs-2--6-blue?style=flat-square"/>
+  <img src="https://img.shields.io/badge/joueurs-4-blue?style=flat-square"/>
   <img src="https://img.shields.io/badge/plateforme-web-green?style=flat-square"/>
 </p>
