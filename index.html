@@ -476,8 +476,8 @@
 
       <div class="panel-section-title">⚙️ TOOLS (case plateau)</div>
       <div class="tools-box">
-        <button class="action-btn" onclick="exchange5to1()">1×5 → 5×1 (éclater)</button>
-        <button class="action-btn" onclick="exchange2to1()">2×5 → 1×10 (fusionner)</button>
+        <button class="action-btn" onclick="exchange5to1()">5×1 → 1×5 (craft)</button>
+        <button class="action-btn" onclick="exchange2to1()">2×5 → 1×10 (craft)</button>
       </div>
 
     </div>
@@ -1172,60 +1172,121 @@ function showBlockPicker(title, filterFn, onSelect) {
   win.querySelector('#bpclose').onclick=()=>{ clearHL(); win.remove(); };
 }
 
-// 1×5 → 5×1 : éclate un bloc de 5 en 5 cases de 1
+// ── CRAFT 1 : 5 blocs de 1 → 1 bloc de 5 (orange, color index 3) ──
+// Condition : au moins 5 blocs connectés de taille 1 sur la grille.
+// On laisse le joueur en choisir 5 un par un via le picker.
+// Résultat : les 5 cases retirées, un bloc de 5 (pièce I verticale, color 3 = orange) posé là où il y a de la place.
 function exchange5to1() {
-  showBlockPicker('Éclater un bloc de 5', b=>b.size===5, (b)=>{
-    const p=players[currentPlayerIdx];
-    // Retire le bloc
-    b.cells.forEach(m=>p.grid[m.r][m.c]=null);
-    // Place 5 cases de 1 où il y a de la place
-    let placed=0;
-    for(let r=0;r<GS&&placed<5;r++) for(let c=0;c<GS&&placed<5;c++)
-      if(p.grid[r][c]===null){ p.grid[r][c]=0; placed++; }
-    renderGrid();
-    if(placed<5) showStatus('Bloc éclaté ('+placed+'/5 cases placées)');
-    else showStatus('Bloc de 5 éclaté en 5×1 !');
-  });
-}
-
-// 2×5 → 1×10 : fusionne deux blocs de 5 en un bloc de 10
-function exchange2to1() {
-  showBlockPicker('Choisir 1er bloc de 5', b=>b.size===5, (b1)=>{
-    showBlockPicker('Choisir 2ème bloc de 5', b=>b.size===5 && b.cells[0].r!==b1.cells[0].r || b.cells[0].c!==b1.cells[0].c, (b2)=>{
-      // Vérifie que c'est pas le même
-      if(b1.cells[0].r===b2.cells[0].r && b1.cells[0].c===b2.cells[0].c){
-        alert('Choisissez deux blocs différents !'); return;
-      }
-      const p=players[currentPlayerIdx];
-      b1.cells.forEach(m=>p.grid[m.r][m.c]=null);
-      b2.cells.forEach(m=>p.grid[m.r][m.c]=null);
-      // Place un bloc de 10 (horizontal d'abord, sinon vertical)
-      let placed=false;
-      outer:
-      for(let r=0;r<GS&&!placed;r++) for(let c=0;c<=GS-10&&!placed;c++) {
-        let ok=true;
-        for(let i=0;i<10;i++) if(p.grid[r][c+i]!==null){ok=false;break;}
-        if(ok){ for(let i=0;i<10;i++) p.grid[r][c+i]=4; placed=true; break outer; }
-      }
-      if(!placed) {
-        outer2:
-        for(let r=0;r<=GS-10&&!placed;r++) for(let c=0;c<GS&&!placed;c++) {
-          let ok=true;
-          for(let i=0;i<10;i++) if(p.grid[r+i][c]!==null){ok=false;break;}
-          if(ok){ for(let i=0;i<10;i++) p.grid[r+i][c]=4; placed=true; break outer2; }
+  const p = players[currentPlayerIdx];
+  // Récupère tous les blocs de taille exactement 1
+  const singles = getAllBlocks().filter(b => b.size === 1);
+  if (singles.length < 5) {
+    showStatus('❌ Craft impossible : il faut au moins 5 blocs de 1 !');
+    return;
+  }
+  // Sélection des 5 blocs un par un
+  const selected = [];
+  function pickNext() {
+    // Blocs de 1 restants (exclure ceux déjà sélectionnés)
+    const selKeys = new Set(selected.map(b => `${b.cells[0].r},${b.cells[0].c}`));
+    const remaining = getAllBlocks().filter(b => b.size === 1 && !selKeys.has(`${b.cells[0].r},${b.cells[0].c}`));
+    if (remaining.length === 0) { showStatus('❌ Plus de blocs de 1 disponibles !'); return; }
+    const need = 5 - selected.length;
+    showBlockPicker(
+      `Sélectionner bloc de 1 (${selected.length+1}/5)`,
+      b => b.size === 1 && !selKeys.has(`${b.cells[0].r},${b.cells[0].c}`),
+      (b) => {
+        selected.push(b);
+        // Marque visuellement les sélectionnés
+        b.cells.forEach(m => { const el=$c(m.r,m.c); if(el) el.style.outline='3px solid #e0a800'; });
+        if (selected.length < 5) {
+          pickNext();
+        } else {
+          // Craft !
+          selected.forEach(b2 => {
+            b2.cells.forEach(m => { p.grid[m.r][m.c]=null; const el=$c(m.r,m.c); if(el) el.style.outline=''; });
+          });
+          // Place un bloc de 5 (I vertical, color 3 = orange #b85020)
+          // Essaie vertical puis horizontal
+          let placed = false;
+          outer:
+          for(let r=0;r<=GS-5&&!placed;r++) for(let c=0;c<GS&&!placed;c++) {
+            let ok=true;
+            for(let i=0;i<5;i++) if(p.grid[r+i][c]!==null){ok=false;break;}
+            if(ok){ for(let i=0;i<5;i++) p.grid[r+i][c]=3; placed=true; break outer; }
+          }
+          if(!placed) {
+            outer2:
+            for(let r=0;r<GS&&!placed;r++) for(let c=0;c<=GS-5&&!placed;c++) {
+              let ok=true;
+              for(let i=0;i<5;i++) if(p.grid[r][c+i]!==null){ok=false;break;}
+              if(ok){ for(let i=0;i<5;i++) p.grid[r][c+i]=3; placed=true; break outer2; }
+            }
+          }
+          renderGrid();
+          if(placed) showStatus('✅ 5×1 craftés en 1 bloc de 5 orange !');
+          else showStatus('⚠️ Craft fait mais pas de place pour le bloc de 5 !');
         }
       }
-      // Si pas de place pour un bloc de 10 contigu, place 10 cases séparées
-      if(!placed){
-        let cnt=0;
-        for(let r=0;r<GS&&cnt<10;r++) for(let c=0;c<GS&&cnt<10;c++)
-          if(p.grid[r][c]===null){ p.grid[r][c]=4; cnt++; }
-        showStatus('2×5 fusionnés (pas de place pour 1×10 contigu)');
-      } else {
-        showStatus('2 blocs de 5 fusionnés en 1 bloc de 10 !');
+    );
+  }
+  pickNext();
+}
+
+// ── CRAFT 2 : 2 blocs de 5 → 1 bloc de 10 (ten_I, bleu-vert, color 4) ──
+// Condition : au moins 2 blocs connectés de taille 5 sur la grille.
+// Résultat : les 2×5 retirés, un bloc ten_I (1×10 horizontal ou vertical, color 4 = #208898) posé.
+function exchange2to1() {
+  const p = players[currentPlayerIdx];
+  const fives = getAllBlocks().filter(b => b.size === 5);
+  if (fives.length < 2) {
+    showStatus('❌ Craft impossible : il faut au moins 2 blocs de 5 !');
+    return;
+  }
+  let b1 = null;
+  showBlockPicker('Choisir 1er bloc de 5', b => b.size === 5, (first) => {
+    b1 = first;
+    // Surligne le premier choisi
+    b1.cells.forEach(m => { const el=$c(m.r,m.c); if(el) el.style.outline='3px solid #e0a800'; });
+    // Identifiant unique du premier bloc (cellule [0])
+    const b1key = `${b1.cells[0].r},${b1.cells[0].c}`;
+    showBlockPicker(
+      'Choisir 2ème bloc de 5',
+      b => b.size === 5 && `${b.cells[0].r},${b.cells[0].c}` !== b1key,
+      (b2) => {
+        // Nettoie les outlines
+        b1.cells.forEach(m => { const el=$c(m.r,m.c); if(el) el.style.outline=''; });
+        // Retire les deux blocs
+        b1.cells.forEach(m => p.grid[m.r][m.c]=null);
+        b2.cells.forEach(m => p.grid[m.r][m.c]=null);
+        // Place ten_I : 1×10 horizontal prioritaire, sinon vertical
+        // color 4 = #208898 (bleu-vert, même que ten_I dans PIECE_DEFS)
+        let placed = false;
+        outer:
+        for(let r=0;r<GS&&!placed;r++) for(let c=0;c<=GS-10&&!placed;c++) {
+          let ok=true;
+          for(let i=0;i<10;i++) if(p.grid[r][c+i]!==null){ok=false;break;}
+          if(ok){ for(let i=0;i<10;i++) p.grid[r][c+i]=4; placed=true; break outer; }
+        }
+        if(!placed) {
+          outer2:
+          for(let r=0;r<=GS-10&&!placed;r++) for(let c=0;c<GS&&!placed;c++) {
+            let ok=true;
+            for(let i=0;i<10;i++) if(p.grid[r+i][c]!==null){ok=false;break;}
+            if(ok){ for(let i=0;i<10;i++) p.grid[r+i][c]=4; placed=true; break outer2; }
+          }
+        }
+        renderGrid();
+        if(placed) showStatus('✅ 2×5 craftés en 1 bloc de 10 bleu-vert !');
+        else {
+          // Annule : remet les blocs (pas de place pour un I de 10 contigu)
+          showStatus('❌ Pas de place pour un bloc de 10 contigu — craft annulé !');
+          b1.cells.forEach(m => p.grid[m.r][m.c]=b1.color);
+          b2.cells.forEach(m => p.grid[m.r][m.c]=b2.color);
+          renderGrid();
+        }
       }
-      renderGrid();
-    });
+    );
   });
 }
 
