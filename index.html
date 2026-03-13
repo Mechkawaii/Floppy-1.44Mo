@@ -405,7 +405,7 @@
   <div class="main-body" style="display:flex;">
 
     <!-- ── LEFT : GRILLE ── -->
-    <div class="grid-col" style="padding:10px;flex:0 0 auto;">
+    <div class="grid-col" style="padding:10px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <span style="font-family:'VT323',monospace;font-size:19px;font-weight:bold;color:var(--txt);">
@@ -461,7 +461,6 @@
         <img src="logo.png" class="logo-img"
              onerror="this.style.display='none';document.getElementById('logo-fb').style.display='block'">
         <div id="logo-fb" style="font-size:70px;display:none;">💾</div>
-        <div class="logo-title">FLOPPY</div>
         <div class="logo-sub">1,44 Mo. Pas un octet de plus.</div>
       </div>
 
@@ -1156,11 +1155,78 @@ function showPlacedMenu(r,c,x,y) {
 // ═══════════════════════════════════════════
 function runDefrag() {
   const p=players[currentPlayerIdx];
-  if(p.defragUsed){alert('DEFRAG déjà utilisé !');return;}
-  if(!confirm('DEFRAG : perdre 5 fichiers ?')) return;
-  let rem=0;
-  for(let r=0;r<GS&&rem<5;r++) for(let c=0;c<GS&&rem<5;c++) if(p.grid[r][c]!==null){gClear(p.grid,r,c);rem++;}
-  p.defragUsed=true; renderGrid(); updateStatusBar();
+  if(p.defragUsed){showStatus('⚙ DEFRAG déjà utilisé !');return;}
+  // Propose : 5 blocs de 1 OU 1 bloc de 5
+  const singles=getAllBlocks().filter(b=>b.size===1);
+  const fives=getAllBlocks().filter(b=>b.size===5);
+  if(!singles.length&&!fives.length){showStatus('⚙ Rien à défragmenter !');return;}
+
+  showDefragPicker(singles, fives, ()=>{
+    p.defragUsed=true; renderGrid(); updateStatusBar();
+    showStatus('⚙ DEFRAG effectué !');
+  });
+}
+
+function showDefragPicker(singles, fives, onDone) {
+  document.getElementById('defrag-picker')?.remove();
+  const win=document.createElement('div'); win.id='defrag-picker'; win.className='win';
+  win.style.cssText='position:fixed;z-index:7500;top:50%;left:50%;transform:translate(-50%,-50%);width:320px;max-width:92vw;';
+  const tb=document.createElement('div'); tb.className='win-titlebar'; tb.style.cursor='default';
+  tb.innerHTML='<span class="win-title-text">⚙ DEFRAG — choisir mode</span><div class="win-controls"><div class="win-btn close" id="dfclose">✕</div></div>';
+  win.appendChild(tb);
+  const body=document.createElement('div');
+  body.style.cssText='padding:10px;background:var(--win-content);';
+  const hint=document.createElement('div');
+  hint.style.cssText='font-family:VT323,monospace;font-size:16px;color:#5a2d82;margin-bottom:10px;';
+  hint.textContent='Supprimer 5 fichiers — choisir le mode :';
+  body.appendChild(hint);
+
+  const mkBtn=(label, enabled, fn)=>{
+    const b=document.createElement('button'); b.className='action-btn';
+    b.style.cssText='width:100%;justify-content:center;margin-bottom:6px;font-size:17px;';
+    b.textContent=label;
+    if(!enabled){b.disabled=true;}
+    else { b.onclick=()=>{win.remove(); fn();}; b.ontouchend=ev=>{ev.preventDefault();b.onclick();}; }
+    body.appendChild(b);
+  };
+
+  mkBtn('5 blocs de 1 (sélectionner)', singles.length>=5, ()=>defragPickSingles(5, onDone));
+  mkBtn('1 bloc de 5 (sélectionner)', fives.length>=1,   ()=>defragPickFive(onDone));
+  win.appendChild(body); document.body.appendChild(win);
+  win.querySelector('#dfclose').onclick=()=>win.remove();
+}
+
+function defragPickSingles(remaining, onDone) {
+  if(remaining===0){onDone();return;}
+  const alreadyGone=new Set();
+  function pickOne(left) {
+    const avail=getAllBlocks().filter(b=>b.size===1&&!alreadyGone.has(`${b.cells[0].r},${b.cells[0].c}`));
+    if(!avail.length){onDone();return;}
+    showBlockPicker(
+      `DEFRAG : supprimer bloc de 1 (${5-left+1}/5)`,
+      b=>b.size===1&&!alreadyGone.has(`${b.cells[0].r},${b.cells[0].c}`),
+      (b)=>{
+        const p=players[currentPlayerIdx];
+        alreadyGone.add(`${b.cells[0].r},${b.cells[0].c}`);
+        b.cells.forEach(m=>gClear(p.grid,m.r,m.c));
+        renderGrid();
+        if(left-1>0) pickOne(left-1); else onDone();
+      }
+    );
+  }
+  pickOne(remaining);
+}
+
+function defragPickFive(onDone) {
+  showBlockPicker(
+    'DEFRAG : supprimer un bloc de 5',
+    b=>b.size===5,
+    (b)=>{
+      const p=players[currentPlayerIdx];
+      b.cells.forEach(m=>gClear(p.grid,m.r,m.c));
+      renderGrid(); onDone();
+    }
+  );
 }
 function toggleBackup() {
   players[currentPlayerIdx].backupActive=!players[currentPlayerIdx].backupActive;
