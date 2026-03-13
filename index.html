@@ -811,11 +811,31 @@ function handleMoveClick(r,c) {
       if(t.r<0||t.r>=GS||t.c<0||t.c>=GS){ok=false;break;}
       if(p.grid[t.r][t.c]!==null&&!src.has(`${t.r},${t.c}`)){ok=false;break;}
     }
-    if(!ok){showStatus('Impossible !');return;}
-    movingCells.forEach(m=>gClear(p.grid,m.r,m.c));
-    tgt.forEach(t=>gFill(p.grid,t.r,t.c,t.color,t.gid));
-    movingCells=null; renderGrid(); showStatus('Pièce déplacée !');
-    if(window.innerWidth<=700) toggleMoveMode();
+    if(ok){
+      movingCells.forEach(m=>gClear(p.grid,m.r,m.c));
+      tgt.forEach(t=>gFill(p.grid,t.r,t.c,t.color,t.gid));
+      movingCells=null; renderGrid(); showStatus('Pièce déplacée !');
+      if(window.innerWidth<=700) toggleMoveMode();
+    } else {
+      // Destination invalide → retire le bloc et bascule en mode fantôme libre
+      const color=movingCells[0].color;
+      const gid=movingCells[0].gid;
+      // Reconstruit la forme à partir des cellules sélectionnées
+      const minR=Math.min(...movingCells.map(m=>m.r)),minC=Math.min(...movingCells.map(m=>m.c));
+      const maxR=Math.max(...movingCells.map(m=>m.r)),maxC=Math.max(...movingCells.map(m=>m.c));
+      const shape=Array(maxR-minR+1).fill(null).map(()=>Array(maxC-minC+1).fill(0));
+      movingCells.forEach(m=>shape[m.r-minR][m.c-minC]=1);
+      movingCells.forEach(m=>gClear(p.grid,m.r,m.c));
+      movingCells=null;
+      renderGrid();
+      moveMode=false;
+      document.getElementById('move-mode-btn').classList.remove('active');
+      document.getElementById('mode-indicator').className='mode-bar';
+      craftQueue=[{color, shape, gid}];
+      craftMode=true; selectedPieceDef=null;
+      placeCraftNext();
+      showStatus('✋ Déplacement impossible ici — choisissez une autre destination');
+    }
   }
 }
 
