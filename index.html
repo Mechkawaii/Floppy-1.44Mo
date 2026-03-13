@@ -305,79 +305,124 @@
   .info-key { color: #5a2d82; font-weight: bold; }
   .sep { height: 2px; background: var(--win-darker); box-shadow: 0 1px 0 var(--win-white); margin: 4px 6px; }
 
-  /* ══ TOUCH OPTIMISATIONS ══ */
-  /* Empêche le scroll parasite sur la grille et les boutons */
-  #disk-grid        { touch-action: none; }
-  .action-btn,
-  .add-player-btn,
-  .player-tab       { touch-action: manipulation; }
-  /* Agrandit les zones tactiles des boutons */
+  /* ══ TOUCH GLOBAL ══ */
+  .action-btn, .add-player-btn, .player-tab { touch-action: manipulation; }
+
+  /* ══ MOBILE ══ */
   @media (max-width: 700px) {
-    .action-btn     { min-height: 44px; font-size: 17px; padding: 4px 12px; }
-    .add-player-btn { min-height: 44px; }
-    .player-tab     { min-height: 40px; padding: 6px 14px; }
-    /* Pièces plus grandes pour les doigts */
-    .p-cell         { width: 16px !important; height: 16px !important; }
-    .piece-preview  { padding: 7px; }
-  }
+    body {
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding-bottom: 40px;
+    }
 
-
-  @media (max-width: 700px) {
-    body { overflow-y: auto; overflow-x: hidden; }
-
+    /* Fenêtre principale — plein écran, pas de positionnement absolu */
     #win-main {
       position: static !important;
       transform: none !important;
       left: auto !important; top: auto !important;
-      width: 100vw !important;
-      border-left: none; border-right: none; border-top: none;
+      width: 100% !important;
+      max-width: 100vw;
+      border: none;
       box-shadow: none;
     }
-    .win-titlebar { font-size: 17px; height: 28px; }
+    .win-titlebar { font-size: 16px; height: 30px; cursor: default; }
+    .win-menubar  { display: none; } /* Gain de place */
 
-    /* Colonne : grille au-dessus, panneau en dessous */
+    /* Layout vertical */
     .main-body { flex-direction: column !important; }
 
+    /* ── Colonne grille ── */
     .grid-col {
-      padding: 5px !important;
+      padding: 4px !important;
       width: 100% !important;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
+    /* Header path raccourci */
+    .grid-col > div:first-child { width: 100%; justify-content: space-between; }
+
+    /* Conteneur grille : pas de padding latéral excessif */
+    .disk-container { padding: 4px; width: 100%; box-sizing: border-box; }
+    .grid-header    { font-size: 14px; padding: 3px 6px; }
+
+    /* Grille elle-même : touch-action none SEULEMENT quand une pièce est active (géré en JS) */
+    #disk-grid      { gap: 1px; padding: 2px; }
+
+    /* Coordonnées minuscules */
+    .coord-x { font-size: 8px; }
+    .coord-y { font-size: 8px; min-width: 12px; width: 12px !important; }
+
+    /* Score */
+    .score-display { font-size: 16px; padding: 4px 8px; width: 100%; box-sizing: border-box; }
+    .score-bar     { width: 100%; }
+
+    /* Barre de mode */
+    .mode-bar { font-size: 14px; padding: 3px 6px; width: 100%; box-sizing: border-box; }
+
+    /* Boutons d'action : grille 2 colonnes sur mobile */
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      padding: 6px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .action-btn {
+      font-size: 15px !important;
+      height: 42px !important;
+      min-height: 42px;
+      padding: 4px 8px !important;
+      justify-content: center;
+      width: 100%;
+    }
+
+    /* Barre de statut */
+    .status-bar { font-size: 13px; padding: 3px 6px; flex-wrap: wrap; gap: 4px; }
+    .status-section { border-right: none; padding-right: 0; }
+
+    /* ── Panneau droit ── */
     .right-panel {
       width: 100% !important;
       max-height: none !important;
       border-left: none !important;
-      border-top: 2px solid var(--win-darker);
+      border-top: 3px solid var(--win-darker);
+      overflow-y: visible;
     }
 
-    #disk-grid { gap: 1px; padding: 2px; }
-    .coord-x { font-size: 9px; }
-    .coord-y  { font-size: 9px; width: 14px; }
+    /* Logo compact */
+    .logo-area { padding: 6px; display: flex; align-items: center; gap: 10px; justify-content: center; }
+    .logo-img  { width: 48px; height: 48px; }
+    .logo-sub  { font-size: 13px; }
 
-    .score-display { font-size: 17px; padding: 4px 8px; }
-    .grid-header   { font-size: 15px; padding: 3px 8px; }
-    .action-row    { gap: 4px; padding: 4px; }
-    .action-btn    { font-size: 15px; padding: 3px 8px; height: 28px; }
-    .status-bar    { font-size: 14px; padding: 3px 6px; }
+    /* Pièces : plus grandes cases tactiles */
+    .p-cell        { width: 18px !important; height: 18px !important; }
+    .piece-preview { padding: 6px; }
+    .pieces-scroll { max-height: none; }
+    .piece-row     { flex-wrap: wrap; gap: 6px; }
 
-    .logo-area  { padding: 8px; }
-    .logo-img   { width: 60px; height: 60px; }
-    .logo-title { font-size: 22px; }
-    .logo-sub   { display: none; }
+    /* Tabs joueurs */
+    .player-tab    { min-height: 38px; padding: 4px 14px; font-size: 17px; }
+    .add-player-btn{ min-height: 38px; font-size: 17px; }
 
-    .pieces-scroll { max-height: none; flex-direction: row; flex-wrap: wrap; }
+    /* Taskbar */
+    .taskbar { height: 34px; }
+    .start-btn, .taskbar-item { font-size: 13px; padding: 2px 8px; height: 26px; }
+    .taskbar-clock { font-size: 13px; }
 
-    .taskbar { height: 32px; }
-    .start-btn, .taskbar-item { font-size: 14px; padding: 2px 8px; height: 24px; }
-    .taskbar-clock { font-size: 14px; }
-
+    /* Fenêtre info */
     #win-info {
-      width: 90vw !important;
-      left: 5vw !important;
-      top: 60px !important;
       position: fixed !important;
+      width: 92vw !important;
+      left: 4vw !important;
+      top: 50px !important;
+      max-height: 80vh;
+      overflow-y: auto;
     }
-    .win-titlebar { cursor: default; }
   }
 
 </style>
@@ -405,7 +450,7 @@
   <div class="main-body" style="display:flex;">
 
     <!-- ── LEFT : GRILLE ── -->
-    <div class="grid-col" style="padding:10px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
+    <div class="grid-col" style="padding:10px;flex:0 0 auto;">
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <span style="font-family:'VT323',monospace;font-size:19px;font-weight:bold;color:var(--txt);">
@@ -767,7 +812,7 @@ function toggleDeleteMode() {
   const ind=document.getElementById('mode-indicator');
   ind.className=deleteMode?'mode-bar delete-mode':'mode-bar';
   ind.textContent=deleteMode?'🗑 SUPPRESSION — cliquez un bloc pour l\'effacer':'';
-  renderGrid();
+  renderGrid(); updateGridTouchAction();
 }
 function handleDeleteClick(r,c) {
   const p=players[currentPlayerIdx];
@@ -791,7 +836,7 @@ function toggleMoveMode() {
   const ind=document.getElementById('mode-indicator');
   ind.className=moveMode?'mode-bar move-mode':'mode-bar';
   ind.textContent=moveMode?'✋ DÉPLACEMENT — touchez une pièce puis sa destination':'';
-  renderGrid();
+  renderGrid(); updateGridTouchAction();
 }
 function handleMoveClick(r,c) {
   const p=players[currentPlayerIdx];
@@ -849,7 +894,7 @@ function toggleRotateMode() {
   const ind=document.getElementById('mode-indicator');
   ind.className=rotateMode?'mode-bar rotate-mode':'mode-bar';
   ind.textContent=rotateMode?'↻ PIVOT — touchez un bloc pour le faire pivoter':'';
-  renderGrid();
+  renderGrid(); updateGridTouchAction();
 }
 function handleRotateClick(r,c) {
   const p=players[currentPlayerIdx];
@@ -948,6 +993,7 @@ function switchPlayer(idx) {
   currentPlayerIdx=idx; rotation=0; selectedPieceDef=null; movingCells=null;
   renderTabs(); renderGrid(); renderPiecesPanel(); updateStatusBar();
   document.getElementById('selected-piece-display').textContent='Touchez une pièce ↓';
+  updateGridTouchAction();
 }
 
 // ═══════════════════════════════════════════
@@ -998,6 +1044,7 @@ function selectPiece(pd) {
   selectedPieceDef=pd; rotation=0; renderPiecesPanel();
   document.getElementById('selected-piece-display').textContent=pd.name+' — '+pd.size+' fichier(s)';
   document.getElementById('status-piece').textContent='Sélectionné: '+pd.name;
+  updateGridTouchAction();
 }
 
 // ═══════════════════════════════════════════
@@ -1289,12 +1336,14 @@ function showBlockPicker(title,filterFn,onSelect) {
 // Craft mode
 function startCraftPlacement(pieces) {
   craftQueue=[...pieces]; craftMode=true; selectedPieceDef=null;
+  updateGridTouchAction();
   placeCraftNext();
 }
 function placeCraftNext() {
   if(!craftQueue.length){
     craftMode=false;
     selectedPieceDef=null;  // ← important : empêche toute pose supplémentaire
+    updateGridTouchAction();
     rotation=0;
     renderGrid(); renderPiecesPanel();
     const ind=document.getElementById('mode-indicator');
@@ -1410,25 +1459,35 @@ function makeDraggable(win,handle) {
 // MOBILE — taille dynamique des cellules
 // ═══════════════════════════════════════════
 function applyMobileGrid() {
-  const isMobile=window.innerWidth<=700;
-  const grid=document.getElementById('disk-grid');
-  if(isMobile){
-    const available=window.innerWidth-10-16-20;
-    const cs=Math.max(18,Math.min(Math.floor((available-13)/12),46));
-    grid.style.gridTemplateColumns=`repeat(12,${cs}px)`;
-    grid.style.gridTemplateRows=`repeat(12,${cs}px)`;
+  const isMobile = window.innerWidth <= 700;
+  const grid = document.getElementById('disk-grid');
+  if (isMobile) {
+    // Largeur dispo : viewport - padding grid-col (8px) - coord-y (14px) - gap/border
+    const available = window.innerWidth - 8 - 14 - 16;
+    const cs = Math.max(18, Math.min(Math.floor((available - 11) / 12), 46));
+    grid.style.gridTemplateColumns = `repeat(12,${cs}px)`;
+    grid.style.gridTemplateRows    = `repeat(12,${cs}px)`;
     document.querySelectorAll('.cell').forEach(c=>{c.style.width=cs+'px';c.style.height=cs+'px';});
     document.querySelectorAll('.coord-x').forEach(c=>c.style.width=cs+'px');
     document.querySelectorAll('.coord-y').forEach(c=>c.style.height=cs+'px');
   } else {
-    grid.style.gridTemplateColumns='repeat(12,46px)';
-    grid.style.gridTemplateRows='repeat(12,46px)';
+    grid.style.gridTemplateColumns = 'repeat(12,46px)';
+    grid.style.gridTemplateRows    = 'repeat(12,46px)';
     document.querySelectorAll('.cell').forEach(c=>{c.style.width='46px';c.style.height='46px';});
     document.querySelectorAll('.coord-x').forEach(c=>c.style.width='46px');
     document.querySelectorAll('.coord-y').forEach(c=>c.style.height='46px');
   }
+  updateGridTouchAction();
 }
-window.addEventListener('resize',applyMobileGrid);
+window.addEventListener('resize', applyMobileGrid);
+
+// Active touch-action:none sur la grille seulement quand une interaction est en cours
+// Sinon le scroll vertical de la page reste possible
+function updateGridTouchAction() {
+  const grid = document.getElementById('disk-grid');
+  const needsLock = selectedPieceDef || moveMode || rotateMode || deleteMode || craftMode || (movingCells !== null);
+  grid.style.touchAction = needsLock ? 'none' : 'pan-y';
+}
 
 // ═══════════════════════════════════════════
 // INIT
