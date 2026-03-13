@@ -715,7 +715,8 @@ function placePiece(r,c) {
   const cells=getCellsForPiece(r,c);
   for(const[nr,nc]of cells) if(nr<0||nr>=GS||nc<0||nc>=GS||p.grid[nr][nc]!==null) return;
   const colorIdx = selectedPieceDef._craftColor ?? selectedPieceDef.color;
-  const gid = newGid();
+  // Si craft depuis pivot, préserve le gid d'origine; sinon nouveau gid
+  const gid = (craftMode && craftQueue.length && craftQueue[0].gid) ? craftQueue[0].gid : newGid();
   for(const[nr,nc]of cells) gFill(p.grid,nr,nc,colorIdx,gid);
   lastPlaced={playerIdx:currentPlayerIdx, cells, colorIdx, gid};
   if(craftMode) {
@@ -838,6 +839,8 @@ function handleRotateClick(r,c) {
   const gid=cell.g; const color=cell.c;
   const cells=getConnectedByGid(r,c,gid,p.grid);
   if(!cells.length) return;
+
+  // Calcule la forme pivotée
   const minR=Math.min(...cells.map(m=>m.r)),minC=Math.min(...cells.map(m=>m.c));
   const maxR=Math.max(...cells.map(m=>m.r)),maxC=Math.max(...cells.map(m=>m.c));
   const h=maxR-minR+1,w=maxC-minC+1;
@@ -845,6 +848,8 @@ function handleRotateClick(r,c) {
   cells.forEach(m=>local[m.r-minR][m.c-minC]=1);
   const rotated=rotateMat(local);
   const rH=rotated.length,rW=rotated[0].length;
+
+  // Essaie sur place
   let aR=minR,aC=minC;
   if(aR+rH>GS) aR=GS-rH; if(aC+rW>GS) aC=GS-rW;
   if(aR<0) aR=0; if(aC<0) aC=0;
@@ -856,11 +861,25 @@ function handleRotateClick(r,c) {
     if(nc2.r<0||nc2.r>=GS||nc2.c<0||nc2.c>=GS){ok=false;break;}
     if(p.grid[nc2.r][nc2.c]!==null&&!srcSet.has(`${nc2.r},${nc2.c}`)){ok=false;break;}
   }
-  if(!ok){showStatus('Impossible ! Pas de place pour pivoter.');return;}
-  cells.forEach(m=>gClear(p.grid,m.r,m.c));
-  newCells.forEach(nc2=>gFill(p.grid,nc2.r,nc2.c,color,gid));
-  renderGrid(); showStatus('Pièce pivotée !');
-  if(window.innerWidth<=700) toggleRotateMode();
+
+  if(ok){
+    cells.forEach(m=>gClear(p.grid,m.r,m.c));
+    newCells.forEach(nc2=>gFill(p.grid,nc2.r,nc2.c,color,gid));
+    renderGrid(); showStatus('Pièce pivotée !');
+    if(window.innerWidth<=700) toggleRotateMode();
+  } else {
+    // Retire le bloc et bascule en mode fantôme libre
+    cells.forEach(m=>gClear(p.grid,m.r,m.c));
+    renderGrid();
+    rotateMode=false;
+    document.getElementById('rotate-mode-btn').classList.remove('active');
+    document.getElementById('mode-indicator').className='mode-bar';
+    // Craft placement avec forme pivotée et gid/color d'origine
+    craftQueue=[{color, shape:rotated, gid}];
+    craftMode=true; selectedPieceDef=null;
+    placeCraftNext();
+    showStatus('↻ Pivoté — plus de place ici, choisissez où poser la pièce');
+  }
 }
 
 // ═══════════════════════════════════════════
