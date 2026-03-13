@@ -8,7 +8,7 @@ Un jeu de société original de **Valentin HEYNE** — © 2026 Le Cartel du Dé 
 
 ## 🎮 Jouer en ligne
 
-👉 **[Lancer l'application](https://[TON-PSEUDO].github.io/floppy/)**
+👉 **[Lancer l'application](https://floppy.mechkawaii.com/)**
 
 ---
 
@@ -100,7 +100,7 @@ L'app web remplace les disquettes physiques du jeu. Elle permet à chaque joueur
 Aucune dépendance. Ouvre simplement `index.html` dans ton navigateur.
 
 ```bash
-git clone https://github.com/[TON-PSEUDO]/floppy.git
+git clone https://floppy.mechkawaii.com/
 cd floppy
 open index.html
 ```
