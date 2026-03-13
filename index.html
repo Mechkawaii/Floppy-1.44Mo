@@ -972,6 +972,7 @@ function makePiecePreview(pd) {
   return wrap;
 }
 function selectPiece(pd) {
+  if(craftMode) return;  // ← pas de changement de pièce pendant un craft en cours
   if(moveMode)   toggleMoveMode();
   if(rotateMode) toggleRotateMode();
   if(deleteMode) toggleDeleteMode();
@@ -1206,10 +1207,13 @@ function startCraftPlacement(pieces) {
 }
 function placeCraftNext() {
   if(!craftQueue.length){
-    craftMode=false; renderGrid();
-    // Nettoie la barre de mode
+    craftMode=false;
+    selectedPieceDef=null;  // ← important : empêche toute pose supplémentaire
+    rotation=0;
+    renderGrid(); renderPiecesPanel();
     const ind=document.getElementById('mode-indicator');
     ind.className='mode-bar'; ind.textContent='';
+    document.getElementById('selected-piece-display').textContent='Touchez une pièce ↓';
     showStatus('✅ Toutes les pièces craftées ont été placées !');
     return;
   }
