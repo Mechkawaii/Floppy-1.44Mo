@@ -4,6 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Floppy 1.44Mo</title>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="shortcut icon" href="logo.png">
+
+<!-- iOS — icône écran d'accueil -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Floppy">
+<link rel="apple-touch-icon" href="logo.png">
+<link rel="apple-touch-icon-precomposed" href="logo.png">
+
+<!-- Android / PWA — icône écran d'accueil -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Floppy">
+<link rel="manifest" href="manifest.json">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
@@ -15,9 +31,9 @@
     --win-title:   #5545a0;
     --win-menubar: #d0cce8;
     --win-content: #f5eef8;
-    --grid-bg:     #fcebf3;
-    --grid-line:   #d8a8c8;
-    --grid-border: #c090b0;
+    --grid-bg:     #e8e8e8;
+    --grid-line:   #b0b0b0;
+    --grid-border: #909090;
     --txt:         #1a0a3a;
   }
 
@@ -125,10 +141,10 @@
     border-right: 2px solid var(--win-white); border-bottom: 2px solid var(--win-white);
   }
   .grid-header {
-    font-family: 'VT323', monospace; font-size: 20px; color: #8a2060;
-    background: #f0d8ea; padding: 4px 12px; margin-bottom: 8px;
+    font-family: 'VT323', monospace; font-size: 20px; color: #444444;
+    background: #d8d8d8; padding: 4px 12px; margin-bottom: 8px;
     display: flex; justify-content: space-between;
-    border-bottom: 2px solid #c060a0;
+    border-bottom: 2px solid #a0a0a0;
   }
   #disk-grid {
     display: grid;
@@ -139,10 +155,10 @@
   }
   .cell {
     width: 46px; height: 46px;
-    background: var(--grid-bg); border: 1px solid #d0a8c0;
+    background: var(--grid-bg); border: 1px solid #c0c0c0;
     cursor: pointer; transition: background 0.08s; position: relative;
   }
-  .cell:hover:not(.filled) { background: #f0d0e8; border-color: #a060a0; }
+  .cell:hover:not(.filled) { background: #d0d0d0; border-color: #808080; }
   .cell.filled { cursor: grab; }
   .cell.highlight { background: #c8f0d0 !important; border-color: #40b060 !important; }
   .cell.invalid   { background: #f8d0d8 !important; border-color: #e04060 !important; }
@@ -410,9 +426,10 @@
     .add-player-btn{ min-height: 38px; font-size: 17px; }
 
     /* Taskbar */
-    .taskbar { height: 34px; }
+    .taskbar { height: 34px; bottom: env(safe-area-inset-bottom, 0px); }
     .start-btn, .taskbar-item { font-size: 13px; padding: 2px 8px; height: 26px; }
     .taskbar-clock { font-size: 13px; }
+    body { padding-bottom: calc(34px + env(safe-area-inset-bottom, 8px)); }
 
     /* Fenêtre info */
     #win-info {
