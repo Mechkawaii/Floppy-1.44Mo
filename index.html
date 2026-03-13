@@ -151,13 +151,13 @@
   .cell.rotate-source { outline: 3px solid #a040ff; outline-offset: -3px; cursor: alias; }
 
   /* Block colors */
-  .color-0 { background: #8040b0; border-color: #b060e0; }
-  .color-1 { background: #3060a8; border-color: #5090d0; }
-  .color-2 { background: #208858; border-color: #30c080; }
-  .color-3 { background: #b85020; border-color: #e07030; }
-  .color-4 { background: #208898; border-color: #30c0c0; }
-  .color-5 { background: #888020; border-color: #c0b030; }
-  .color-6 { background: #a82060; border-color: #d04090; }
+  .color-0 { background: #cec3ba; border-color: #b0a89e; }  /* 1 fichier — beige */
+  .color-1 { background: #a486da; border-color: #8060c0; }  /* 5 fichiers — violet */
+  .color-2 { background: #a486da; border-color: #8060c0; }
+  .color-3 { background: #a486da; border-color: #8060c0; }
+  .color-4 { background: #afcdd1; border-color: #80b0b8; }  /* 10 fichiers — bleu-vert */
+  .color-5 { background: #afcdd1; border-color: #80b0b8; }
+  .color-6 { background: #a486da; border-color: #8060c0; }
 
   /* ── RIGHT PANEL ── */
   .right-panel {
@@ -596,7 +596,7 @@ const PIECE_DEFS = [
   { id:'ten_I',  name:'10 fich. I',  size:10, shape:[[1,1,1,1,1,1,1,1,1,1]], color:4 },
   { id:'ten_II', name:'10 fich. II', size:10, shape:[[1,1,1,1,1],[1,1,1,1,1]], color:5 },
 ];
-const COLORS = ['#8040b0','#3060a8','#208858','#b85020','#208898','#888020','#a82060'];
+const COLORS = ['#cec3ba','#a486da','#a486da','#a486da','#afcdd1','#afcdd1','#a486da'];
 const GS = 12;
 
 // ═══════════════════════════════════════════
@@ -1500,9 +1500,7 @@ function init() {
   makeDraggable(document.getElementById('win-info'),document.getElementById('info-titlebar'));
   attachGridTouchEvents();
   applyMobileGrid();
-  document.querySelectorAll('.action-btn,.add-player-btn,.player-tab').forEach(el=>{
-    el.addEventListener('touchend',e=>e.preventDefault(),{passive:false});
-  });
+  // touch-action:manipulation dans le CSS suffit pour éviter le zoom double-tap
 }
 init();
 </script>
