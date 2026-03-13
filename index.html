@@ -321,6 +321,54 @@
   .info-key { color: #5a2d82; font-weight: bold; }
   .sep { height: 2px; background: var(--win-darker); box-shadow: 0 1px 0 var(--win-white); margin: 4px 6px; }
 
+
+  /* ══ SABLIER WIN95 ══ */
+  #hold-hourglass {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transform: translate(-50%, -120%);
+  }
+  .hg-win {
+    background: #c0c0d0;
+    border-top: 2px solid #ffffff;
+    border-left: 2px solid #ffffff;
+    border-right: 2px solid #404040;
+    border-bottom: 2px solid #404040;
+    padding: 5px 7px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    box-shadow: 2px 2px 0 #000;
+    min-width: 54px;
+  }
+  .hg-svg { display: block; }
+  .hg-bar-bg {
+    width: 40px; height: 7px;
+    background: #808080;
+    border-top: 1px solid #404040;
+    border-left: 1px solid #404040;
+    border-right: 1px solid #ffffff;
+    border-bottom: 1px solid #ffffff;
+  }
+  .hg-bar-fill {
+    height: 100%;
+    background: #000080;
+    width: 0%;
+    transition: none;
+  }
+  .hg-label {
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    color: #000;
+    white-space: nowrap;
+  }
+
   /* ══ TOUCH GLOBAL ══ */
   .action-btn, .add-player-btn, .player-tab { touch-action: manipulation; }
 
@@ -643,6 +691,9 @@ let moveMode = false, rotateMode = false, deleteMode = false, movingCells = null
 let td = { active:false, piece:null, ghost:null, holdTimer:null, lastCell:null, lastTap:{} };
 // Long-press sur cellule posée
 let placedHoldTimer = null;
+const PLACED_HOLD_MS = 500; // durée appui long sur pièce posée
+let hgRaf = null;           // requestAnimationFrame sablier
+let hgStartTime = null;     // timestamp début appui
 // Craft mode
 let craftQueue = [], craftMode = false;
 
@@ -1133,42 +1184,265 @@ document.addEventListener('touchend',e=>{
 },{passive:false});
 document.addEventListener('touchcancel',()=>{
   clearTimeout(td.holdTimer);clearTimeout(placedHoldTimer);
-  removeTDGhost();clearHL();
+  removeHourglass();
+  removeTDGhost();removeGridGhost();clearHL();
   td.active=false;td.piece=null;td.lastCell=null;
+  gd.active=false;gd.color=null;gd.shape=null;gd.gid=null;
 });
+
+
+// ═══════════════════════════════════════════
+// SABLIER WIN95 — appui long sur pièce posée
+// ═══════════════════════════════════════════
+function createHourglass(x, y) {
+  removeHourglass();
+  const el = document.createElement('div');
+  el.id = 'hold-hourglass';
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  el.innerHTML = `
+    <div class="hg-win">
+      <svg class="hg-svg" width="28" height="36" viewBox="0 0 28 36">
+        <!-- Cadre sablier -->
+        <polygon points="2,2 26,2 26,4 16,18 26,32 26,34 2,34 2,32 12,18 2,4"
+                 fill="#c0c0c0" stroke="#404040" stroke-width="1.5"/>
+        <!-- Sable haut (se vide) -->
+        <clipPath id="hg-clip-top">
+          <rect id="hg-sand-top-rect" x="4" y="4" width="20" height="13"/>
+        </clipPath>
+        <polygon id="hg-sand-top" points="4,4 24,4 14,17"
+                 fill="#000080" clip-path="url(#hg-clip-top)"/>
+        <!-- Sable bas (se remplit) -->
+        <polygon id="hg-sand-bot" points="14,19 14,19 14,19"
+                 fill="#000080"/>
+        <!-- Reflets Win95 -->
+        <line x1="3" y1="3" x2="25" y2="3" stroke="#ffffff" stroke-width="1"/>
+        <line x1="3" y1="3" x2="3" y2="5"  stroke="#ffffff" stroke-width="1"/>
+      </svg>
+      <div class="hg-bar-bg"><div class="hg-bar-fill" id="hg-bar"></div></div>
+      <div class="hg-label">Maintenir…</div>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+function updateHourglass(progress) {
+  // progress: 0→1
+  const top = document.getElementById('hg-sand-top');
+  const bot = document.getElementById('hg-sand-bot');
+  const bar = document.getElementById('hg-bar');
+  if (!top || !bot || !bar) return;
+
+  // Sable haut : triangle qui se rétrécit vers le bas (fond = 14,17)
+  const p = 1 - progress; // ce qui reste en haut
+  // On rétrécit la base du triangle du haut
+  const baseHalf = 10 * p;   // demi-largeur de la base
+  const topY = 4;
+  const tipY = 17;
+  const midY = topY + (tipY - topY) * progress; // la base monte
+  if (p < 0.02) {
+    top.setAttribute('points', '14,17 14,17 14,17');
+  } else {
+    const bx1 = (14 - baseHalf).toFixed(1);
+    const bx2 = (14 + baseHalf).toFixed(1);
+    top.setAttribute('points', `${bx1},${midY.toFixed(1)} ${bx2},${midY.toFixed(1)} 14,17`);
+  }
+
+  // Sable bas : triangle qui grandit depuis la pointe basse (14,19)
+  const botH = 13 * progress;  // hauteur du tas
+  const botBaseY = 33;
+  const botTipY  = botBaseY - botH;
+  const botHalf  = 10 * progress;
+  if (progress < 0.02) {
+    bot.setAttribute('points', '14,33 14,33 14,33');
+  } else {
+    const bbx1 = (14 - botHalf).toFixed(1);
+    const bbx2 = (14 + botHalf).toFixed(1);
+    bot.setAttribute('points', `${bbx1},${botBaseY} ${bbx2},${botBaseY} 14,${botTipY.toFixed(1)}`);
+  }
+
+  bar.style.width = (progress * 100).toFixed(1) + '%';
+}
+
+function moveHourglass(x, y) {
+  const el = document.getElementById('hold-hourglass');
+  if (el) { el.style.left = x + 'px'; el.style.top = y + 'px'; }
+}
+
+function removeHourglass() {
+  cancelAnimationFrame(hgRaf); hgRaf = null; hgStartTime = null;
+  document.getElementById('hold-hourglass')?.remove();
+}
+
+function startHourglassAnim(x, y, duration, onComplete) {
+  createHourglass(x, y);
+  hgStartTime = performance.now();
+  function frame(now) {
+    const elapsed = now - hgStartTime;
+    const p = Math.min(elapsed / duration, 1);
+    updateHourglass(p);
+    if (p < 1) {
+      hgRaf = requestAnimationFrame(frame);
+    } else {
+      removeHourglass();
+      onComplete();
+    }
+  }
+  hgRaf = requestAnimationFrame(frame);
+}
 
 // ═══════════════════════════════════════════
 // TOUCH sur la grille
 // ═══════════════════════════════════════════
+// État drag depuis grille
+let gd = { active:false, ghost:null, color:null, shape:null, gid:null, lastCell:null };
+
+function createGridGhost(shape, colorIdx) {
+  const R=shape.length, C=shape[0].length, cs=getCellSize();
+  const g=document.createElement('div');
+  g.style.cssText=`position:fixed;z-index:9998;pointer-events:none;display:grid;` +
+    `grid-template-columns:repeat(${C},${cs}px);grid-template-rows:repeat(${R},${cs}px);gap:1px;opacity:0.75;`;
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+    const cell=document.createElement('div');
+    if(shape[r][c]){cell.style.background=COLORS[colorIdx];cell.style.border='1px solid rgba(255,255,255,0.5)';}
+    g.appendChild(cell);
+  }
+  document.body.appendChild(g);
+  return g;
+}
+function moveGridGhost(x,y) {
+  if(!gd.ghost||!gd.shape) return;
+  const cs=getCellSize();
+  gd.ghost.style.left=(x-(gd.shape[0].length*cs)/2)+'px';
+  gd.ghost.style.top =(y-(gd.shape.length   *cs)/2)+'px';
+}
+function removeGridGhost() { if(gd.ghost){gd.ghost.remove();gd.ghost=null;} }
+
 function attachGridTouchEvents() {
   const grid=document.getElementById('disk-grid');
+
   grid.addEventListener('touchstart',e=>{
-    if(td.active) return;
+    if(td.active||gd.active) return;
     const touch=e.touches[0];
     const cell=getCellAt(touch.clientX,touch.clientY);
     if(!cell) return;
     const p=players[currentPlayerIdx];
+
+    // Modes actifs → simple preventDefault et délègue à onClick via touchend
     if(moveMode||rotateMode||deleteMode){e.preventDefault();return;}
+    // Pièce sélectionnée → placement normal
     if(selectedPieceDef){e.preventDefault();return;}
+
     if(p.grid[cell.r][cell.c]!==null){
       e.preventDefault();
       clearTimeout(placedHoldTimer);
-      const saved={r:cell.r,c:cell.c};
-      placedHoldTimer=setTimeout(()=>{
+      cancelAnimationFrame(hgRaf);
+      const saved={r:cell.r,c:cell.c,x:touch.clientX,y:touch.clientY};
+
+      // Lance le sablier + déclenche le drag à la fin
+      startHourglassAnim(touch.clientX, touch.clientY, PLACED_HOLD_MS, ()=>{
+        // Vérifie que le doigt est toujours là
+        const pc=players[currentPlayerIdx];
+        if(!pc.grid[saved.r][saved.c]) return;
+        const gdCell=pc.grid[saved.r][saved.c];
+        const gid=gdCell.g; const color=gdCell.c;
+        const cells=getConnectedByGid(saved.r,saved.c,gid,pc.grid);
+        // Reconstruit la forme
+        const minR=Math.min(...cells.map(m=>m.r)),minC=Math.min(...cells.map(m=>m.c));
+        const maxR=Math.max(...cells.map(m=>m.r)),maxC=Math.max(...cells.map(m=>m.c));
+        const shape=Array(maxR-minR+1).fill(null).map(()=>Array(maxC-minC+1).fill(0));
+        cells.forEach(m=>shape[m.r-minR][m.c-minC]=1);
+        // Retire le bloc
+        cells.forEach(m=>gClear(pc.grid,m.r,m.c));
+        renderGrid();
+        // Active le ghost
+        gd.active=true; gd.color=color; gd.shape=shape; gd.gid=gid; gd.lastCell=null;
+        gd.ghost=createGridGhost(shape,color);
+        moveGridGhost(saved.x, saved.y);
         navigator.vibrate&&navigator.vibrate(40);
-        showPlacedMenu(saved.r,saved.c,touch.clientX,touch.clientY);
-      },350);
+        showStatus('✋ Glissez la pièce puis relâchez');
+      });
+
+      placedHoldTimer = setTimeout(()=>{}, PLACED_HOLD_MS); // placeholder pour clearTimeout
     }
   },{passive:false});
+
   grid.addEventListener('touchend',e=>{
     clearTimeout(placedHoldTimer);
+
+    // Fin du drag grille
+    if(gd.active){
+      e.preventDefault();
+      const touch=e.changedTouches[0];
+      const cell=getCellAt(touch.clientX,touch.clientY);
+      removeGridGhost(); clearHL();
+      if(cell){
+        // Essaie de poser
+        const p=players[currentPlayerIdx];
+        const newCells=[];
+        let ok=true;
+        for(let dr=0;dr<gd.shape.length;dr++) for(let dc=0;dc<gd.shape[dr].length;dc++){
+          if(!gd.shape[dr][dc]) continue;
+          const nr=cell.r+dr, nc=cell.c+dc;
+          if(nr<0||nr>=GS||nc<0||nc>=GS||p.grid[nr][nc]!==null){ok=false;break;}
+          newCells.push({r:nr,c:nc});
+        }
+        if(ok){
+          newCells.forEach(({r,c})=>gFill(p.grid,r,c,gd.color,gd.gid));
+          renderGrid(); showStatus('✋ Pièce déplacée !');
+        } else {
+          // Remet en craft fantôme pour repositionner
+          craftQueue=[{color:gd.color,shape:gd.shape,gid:gd.gid}];
+          craftMode=true; selectedPieceDef=null;
+          updateGridTouchAction(); placeCraftNext();
+          showStatus('✋ Impossible ici — choisissez une autre case');
+        }
+      } else {
+        // Relâché hors grille → craft fantôme
+        craftQueue=[{color:gd.color,shape:gd.shape,gid:gd.gid}];
+        craftMode=true; selectedPieceDef=null;
+        updateGridTouchAction(); placeCraftNext();
+      }
+      gd.active=false; gd.color=null; gd.shape=null; gd.gid=null; gd.lastCell=null;
+      return;
+    }
+
+    removeHourglass();
     if(td.active) return;
     e.preventDefault();
     const touch=e.changedTouches[0];
     const cell=getCellAt(touch.clientX,touch.clientY);
     if(cell) onClick(cell.r,cell.c);
   },{passive:false});
+
   grid.addEventListener('touchmove',e=>{
+    // Si sablier en cours et doigt bouge trop → annule
+    if(hgRaf!==null){
+      removeHourglass();
+      clearTimeout(placedHoldTimer);
+    }
+
+    if(gd.active){
+      e.preventDefault();
+      const touch=e.touches[0];
+      moveGridGhost(touch.clientX,touch.clientY);
+      const cell=getCellAt(touch.clientX,touch.clientY);
+      if(cell&&(!gd.lastCell||gd.lastCell.r!==cell.r||gd.lastCell.c!==cell.c)){
+        gd.lastCell=cell; clearHL();
+        // Preview placement
+        const p=players[currentPlayerIdx];
+        let ok=true;
+        const preview=[];
+        for(let dr=0;dr<gd.shape.length;dr++) for(let dc=0;dc<gd.shape[dr].length;dc++){
+          if(!gd.shape[dr][dc]) continue;
+          const nr=cell.r+dr,nc=cell.c+dc;
+          if(nr<0||nr>=GS||nc<0||nc>=GS||p.grid[nr][nc]!==null){ok=false;}
+          else preview.push({r:nr,c:nc});
+        }
+        preview.forEach(({r,c})=>{const el=$c(r,c);if(el)el.classList.add(ok?'highlight':'invalid');});
+      }
+      return;
+    }
+
     clearTimeout(placedHoldTimer);
     if(td.active) return;
     if(!selectedPieceDef&&!moveMode&&!deleteMode) return;
