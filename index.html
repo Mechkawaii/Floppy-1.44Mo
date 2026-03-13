@@ -146,7 +146,8 @@
   .cell.filled { cursor: grab; }
   .cell.highlight { background: #c8f0d0 !important; border-color: #40b060 !important; }
   .cell.invalid   { background: #f8d0d8 !important; border-color: #e04060 !important; }
-  .cell.move-source   { outline: 3px solid #e0a800; outline-offset: -3px; cursor: grab; }
+  .cell.delete-hl  { background: #ffd0d0 !important; border-color: #e00000 !important; }
+  .mode-bar.delete-mode { background: #ffd8d8; color: #880000; border-color: #e00000; display: block; }
   .cell.rotate-source { outline: 3px solid #a040ff; outline-offset: -3px; cursor: alias; }
 
   /* Block colors */
@@ -441,7 +442,8 @@
         <button class="action-btn" onclick="clearLastPlaced()">↩ Annuler</button>
         <button class="action-btn" id="move-mode-btn" onclick="toggleMoveMode()">✋ Déplacer</button>
         <button class="action-btn" id="rotate-mode-btn" onclick="toggleRotateMode()">↻ Pivoter posée</button>
-        <button class="action-btn danger" onclick="clearCurrentDisk()">🗑 Vider</button>
+        <button class="action-btn" id="delete-mode-btn" onclick="toggleDeleteMode()">🗑 Supprimer</button>
+        <button class="action-btn danger" onclick="clearCurrentDisk()">💣 Vider</button>
         <button class="action-btn" onclick="runDefrag()" id="defrag-btn">⚙ DEFRAG</button>
         <button class="action-btn success" id="backup-btn" onclick="toggleBackup()">💾 BACKUP</button>
       </div>
@@ -554,31 +556,40 @@ const COLORS = ['#8040b0','#3060a8','#208858','#b85020','#208898','#888020','#a8
 const GS = 12;
 
 // ═══════════════════════════════════════════
+// MODÈLE DE DONNÉES
+// Chaque cellule = null  OU  { c: colorIdx, g: groupId }
+// groupId est unique par bloc posé → getConnected filtre par gid
+// ═══════════════════════════════════════════
+let gidCounter = 1;
+function newGid() { return gidCounter++; }
+function emptyGrid() { return Array(GS).fill(null).map(()=>Array(GS).fill(null)); }
+
+// Helpers lecture / écriture
+const gGet  = (grid,r,c) => grid[r][c];           // null ou {c,g}
+const gFill = (grid,r,c,colorIdx,gid) => { grid[r][c]={c:colorIdx,g:gid}; };
+const gClear= (grid,r,c) => { grid[r][c]=null; };
+const gColor= (cell) => cell ? cell.c : null;      // colorIdx ou null
+const gGid  = (cell) => cell ? cell.g : null;
+
+// ═══════════════════════════════════════════
 // ÉTAT GLOBAL
 // ═══════════════════════════════════════════
 let players = [], currentPlayerIdx = 0;
 let selectedPieceDef = null, rotation = 0, lastPlaced = null;
-let moveMode = false, rotateMode = false, movingCells = null;
+let moveMode = false, rotateMode = false, deleteMode = false, movingCells = null;
 
-// ── Touch drag depuis le panneau pièces ──
-let td = {
-  active: false,
-  piece: null,
-  ghost: null,
-  holdTimer: null,
-  lastCell: null,
-  lastTap: {}       // {id, time} pour double-tap
-};
-
-// ── Long-press sur cellule posée ──
+// Touch drag depuis panneau pièces
+let td = { active:false, piece:null, ghost:null, holdTimer:null, lastCell:null, lastTap:{} };
+// Long-press sur cellule posée
 let placedHoldTimer = null;
+// Craft mode
+let craftQueue = [], craftMode = false;
 
 // ═══════════════════════════════════════════
 // JOUEURS
 // ═══════════════════════════════════════════
 function createPlayer(name) {
-  return { name, score:0, backupActive:false, defragUsed:false, lastPieceId:null,
-           grid: Array(GS).fill(null).map(()=>Array(GS).fill(null)) };
+  return { name, score:0, backupActive:false, defragUsed:false, lastPieceId:null, grid:emptyGrid() };
 }
 function addPlayer() {
   if (players.length >= 6) return;
@@ -590,56 +601,51 @@ function addPlayer() {
 // ROTATION MATRICE
 // ═══════════════════════════════════════════
 function rotateMat(s) {
-  const R=s.length, C=s[0].length;
-  const ns = Array(C).fill(null).map(()=>Array(R).fill(0));
+  const R=s.length,C=s[0].length,ns=Array(C).fill(null).map(()=>Array(R).fill(0));
   for(let r=0;r<R;r++) for(let c=0;c<C;c++) ns[c][R-1-r]=s[r][c];
   return ns;
 }
 function getRotatedShape() {
   if (!selectedPieceDef) return null;
-  let s = selectedPieceDef.shape;
+  let s=selectedPieceDef.shape;
   for(let i=0;i<rotation;i++) s=rotateMat(s);
   return s;
 }
 function rotateSelected() {
   if (!selectedPieceDef) return;
-  rotation = (rotation+1)%4;
-  renderPiecesPanel();
-  document.getElementById('selected-piece-display').textContent =
-    selectedPieceDef.name + ' | Rot: ' + (rotation*90) + '°';
+  rotation=(rotation+1)%4; renderPiecesPanel();
+  document.getElementById('selected-piece-display').textContent=
+    selectedPieceDef.name+' | Rot: '+(rotation*90)+'°';
 }
 
 // ═══════════════════════════════════════════
-// GRILLE — construction DOM
+// GRILLE DOM
 // ═══════════════════════════════════════════
 function buildGrid() {
-  ['disk-grid','grid-x-coords','grid-y-coords'].forEach(id => document.getElementById(id).innerHTML='');
-  const xc = document.getElementById('grid-x-coords');
-  for(let c=1;c<=GS;c++){
-    const d=document.createElement('div'); d.className='coord-x'; d.textContent=c; xc.appendChild(d);
-  }
-  const yc = document.getElementById('grid-y-coords');
-  for(let r=1;r<=GS;r++){
-    const d=document.createElement('div'); d.className='coord-y'; d.textContent=r; yc.appendChild(d);
-  }
-  const g = document.getElementById('disk-grid');
-  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++) {
-    const el = document.createElement('div');
-    el.className = 'cell'; el.dataset.r=r; el.dataset.c=c;
-    el.addEventListener('mouseenter', ()=>onHover(r,c));
-    el.addEventListener('mouseleave', clearHL);
-    el.addEventListener('click',      ()=>onClick(r,c));
+  ['disk-grid','grid-x-coords','grid-y-coords'].forEach(id=>document.getElementById(id).innerHTML='');
+  const xc=document.getElementById('grid-x-coords');
+  for(let c=1;c<=GS;c++){const d=document.createElement('div');d.className='coord-x';d.textContent=c;xc.appendChild(d);}
+  const yc=document.getElementById('grid-y-coords');
+  for(let r=1;r<=GS;r++){const d=document.createElement('div');d.className='coord-y';d.textContent=r;yc.appendChild(d);}
+  const g=document.getElementById('disk-grid');
+  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++){
+    const el=document.createElement('div');
+    el.className='cell'; el.dataset.r=r; el.dataset.c=c;
+    el.addEventListener('mouseenter',()=>onHover(r,c));
+    el.addEventListener('mouseleave',clearHL);
+    el.addEventListener('click',()=>onClick(r,c));
     g.appendChild(el);
   }
 }
-const $c = (r,c) => document.querySelector(`#disk-grid .cell[data-r="${r}"][data-c="${c}"]`);
+const $c=(r,c)=>document.querySelector(`#disk-grid .cell[data-r="${r}"][data-c="${c}"]`);
 
 function renderGrid() {
-  const p = players[currentPlayerIdx];
-  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++) {
+  const p=players[currentPlayerIdx];
+  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++){
     const el=$c(r,c); if(!el) continue;
-    const v=p.grid[r][c]; el.className='cell';
-    if(v!==null) el.classList.add('filled','color-'+v);
+    const cell=p.grid[r][c];
+    el.className='cell';
+    if(cell!==null) el.classList.add('filled','color-'+cell.c);
   }
   updateScore();
 }
@@ -648,24 +654,24 @@ function renderGrid() {
 // HOVER / HIGHLIGHT
 // ═══════════════════════════════════════════
 function onHover(r,c) {
-  if (moveMode && movingCells)            { hlMoveTarget(r,c); return; }
-  if (!moveMode && !rotateMode && selectedPieceDef) hlPlace(r,c);
+  if(deleteMode)                               { hlDeleteTarget(r,c); return; }
+  if(moveMode&&movingCells)                    { hlMoveTarget(r,c); return; }
+  if(!moveMode&&!rotateMode&&selectedPieceDef) { hlPlace(r,c); }
 }
 function clearHL() {
-  document.querySelectorAll('#disk-grid .cell.highlight, #disk-grid .cell.invalid')
-    .forEach(el => el.classList.remove('highlight','invalid'));
+  document.querySelectorAll('#disk-grid .cell.highlight,#disk-grid .cell.invalid,#disk-grid .cell.delete-hl')
+    .forEach(el=>el.classList.remove('highlight','invalid','delete-hl'));
 }
 function hlPlace(r,c) {
   clearHL();
-  const cells=getCellsForPiece(r,c), p=players[currentPlayerIdx];
-  let ok = cells.length>0;
+  const cells=getCellsForPiece(r,c),p=players[currentPlayerIdx];
+  let ok=cells.length>0;
   for(const[nr,nc]of cells) if(nr<0||nr>=GS||nc<0||nc>=GS||p.grid[nr][nc]!==null){ok=false;break;}
   for(const[nr,nc]of cells){const el=$c(nr,nc);if(el&&p.grid[nr][nc]===null)el.classList.add(ok?'highlight':'invalid');}
 }
 function hlMoveTarget(r,c) {
   clearHL(); if(!movingCells) return;
-  const p=players[currentPlayerIdx];
-  const dr=r-movingCells[0].r, dc=c-movingCells[0].c;
+  const p=players[currentPlayerIdx],dr=r-movingCells[0].r,dc=c-movingCells[0].c;
   const tgt=movingCells.map(m=>({r:m.r+dr,c:m.c+dc}));
   const src=new Set(movingCells.map(m=>`${m.r},${m.c}`));
   let ok=true;
@@ -675,13 +681,22 @@ function hlMoveTarget(r,c) {
   }
   for(const t of tgt){const el=$c(t.r,t.c);if(el)el.classList.add(ok?'highlight':'invalid');}
 }
+function hlDeleteTarget(r,c) {
+  clearHL();
+  const p=players[currentPlayerIdx];
+  if(p.grid[r][c]===null) return;
+  const gid=p.grid[r][c].g;
+  const cells=getConnectedByGid(r,c,gid,p.grid);
+  cells.forEach(m=>{const el=$c(m.r,m.c);if(el)el.classList.add('delete-hl');});
+}
 
 // ═══════════════════════════════════════════
-// CLICK (souris / tap)
+// CLICK
 // ═══════════════════════════════════════════
 function onClick(r,c) {
-  if (moveMode)   { handleMoveClick(r,c);   return; }
-  if (rotateMode) { handleRotateClick(r,c); return; }
+  if(deleteMode) { handleDeleteClick(r,c); return; }
+  if(moveMode)   { handleMoveClick(r,c);   return; }
+  if(rotateMode) { handleRotateClick(r,c); return; }
   placePiece(r,c);
 }
 
@@ -695,74 +710,111 @@ function getCellsForPiece(r,c) {
   return cells;
 }
 function placePiece(r,c) {
-  if (!selectedPieceDef) return;
-  const p = players[currentPlayerIdx];
-  const cells = getCellsForPiece(r,c);
+  if(!selectedPieceDef) return;
+  const p=players[currentPlayerIdx];
+  const cells=getCellsForPiece(r,c);
   for(const[nr,nc]of cells) if(nr<0||nr>=GS||nc<0||nc>=GS||p.grid[nr][nc]!==null) return;
-  const col = selectedPieceDef._craftColor ?? selectedPieceDef.color;
-  for(const[nr,nc]of cells) p.grid[nr][nc] = col;
-  lastPlaced = {playerIdx:currentPlayerIdx, cells, col};
-  if (craftMode) {
+  const colorIdx = selectedPieceDef._craftColor ?? selectedPieceDef.color;
+  const gid = newGid();
+  for(const[nr,nc]of cells) gFill(p.grid,nr,nc,colorIdx,gid);
+  lastPlaced={playerIdx:currentPlayerIdx, cells, colorIdx, gid};
+  if(craftMode) {
     craftQueue.shift();
     renderGrid(); checkVictory();
     placeCraftNext();
   } else {
-    if (selectedPieceDef.size!==1 && p.lastPieceId===selectedPieceDef.id) {
-      // annule
-      for(const[nr,nc]of cells) p.grid[nr][nc]=null;
+    if(selectedPieceDef.size!==1 && p.lastPieceId===selectedPieceDef.id) {
+      for(const[nr,nc]of cells) gClear(p.grid,nr,nc);
       lastPlaced=null;
       showStatus('Impossible ! Même pièce deux fois !'); return;
     }
-    p.lastPieceId = selectedPieceDef.id;
+    p.lastPieceId=selectedPieceDef.id;
     renderGrid(); checkVictory();
     document.getElementById('status-piece').textContent='Placé: '+selectedPieceDef.name;
   }
 }
 
+// ═══════════════════════════════════════════
+// getConnected — PAR GID (plus par couleur !)
+// ═══════════════════════════════════════════
+function getConnectedByGid(r,c,gid,grid) {
+  const vis=new Set(),q=[[r,c]],res=[];
+  while(q.length){
+    const[cr,cc]=q.shift(); const k=`${cr},${cc}`;
+    if(vis.has(k)||cr<0||cr>=GS||cc<0||cc>=GS) continue;
+    const cell=grid[cr][cc];
+    if(!cell||cell.g!==gid) continue;
+    vis.add(k); res.push({r:cr,c:cc,color:cell.c,gid:cell.g});
+    q.push([cr+1,cc],[cr-1,cc],[cr,cc+1],[cr,cc-1]);
+  }
+  return res;
+}
+// Alias utilisé partout (color passé en param ignoré, on utilise gid)
+function getConnected(r,c,cellOrColor,grid) {
+  const cell = typeof cellOrColor === 'object' ? cellOrColor : grid[r][c];
+  if(!cell) return [];
+  return getConnectedByGid(r,c,cell.g,grid);
+}
+
+// ═══════════════════════════════════════════
+// MODE SUPPRIMER
+// ═══════════════════════════════════════════
+function toggleDeleteMode() {
+  if(moveMode)   toggleMoveMode();
+  if(rotateMode) toggleRotateMode();
+  deleteMode=!deleteMode;
+  document.getElementById('delete-mode-btn').classList.toggle('active',deleteMode);
+  const ind=document.getElementById('mode-indicator');
+  ind.className=deleteMode?'mode-bar delete-mode':'mode-bar';
+  ind.textContent=deleteMode?'🗑 SUPPRESSION — cliquez un bloc pour l\'effacer':'';
+  renderGrid();
+}
+function handleDeleteClick(r,c) {
+  const p=players[currentPlayerIdx];
+  if(p.grid[r][c]===null){showStatus('Aucun bloc ici !');return;}
+  const gid=p.grid[r][c].g;
+  const cells=getConnectedByGid(r,c,gid,p.grid);
+  cells.forEach(m=>gClear(p.grid,m.r,m.c));
+  renderGrid();
+  showStatus(`🗑 Bloc (${cells.length} case${cells.length>1?'s':''}) supprimé`);
+  if(window.innerWidth<=700) toggleDeleteMode();
+}
 
 // ═══════════════════════════════════════════
 // MODE DÉPLACER
 // ═══════════════════════════════════════════
 function toggleMoveMode() {
-  if (rotateMode) toggleRotateMode();
+  if(rotateMode)  toggleRotateMode();
+  if(deleteMode)  toggleDeleteMode();
   moveMode=!moveMode; movingCells=null; clearHL();
-  document.getElementById('move-mode-btn').classList.toggle('active', moveMode);
+  document.getElementById('move-mode-btn').classList.toggle('active',moveMode);
   const ind=document.getElementById('mode-indicator');
-  ind.className = moveMode ? 'mode-bar move-mode' : 'mode-bar';
-  ind.textContent = moveMode ? '✋ DÉPLACEMENT — touchez une pièce puis sa destination' : '';
+  ind.className=moveMode?'mode-bar move-mode':'mode-bar';
+  ind.textContent=moveMode?'✋ DÉPLACEMENT — touchez une pièce puis sa destination':'';
   renderGrid();
-}
-function getConnected(r,c,color,grid) {
-  const vis=new Set(), q=[[r,c]], res=[];
-  while(q.length) {
-    const [cr,cc]=q.shift(); const k=`${cr},${cc}`;
-    if(vis.has(k)||cr<0||cr>=GS||cc<0||cc>=GS||grid[cr][cc]!==color) continue;
-    vis.add(k); res.push({r:cr,c:cc,color});
-    q.push([cr+1,cc],[cr-1,cc],[cr,cc+1],[cr,cc-1]);
-  }
-  return res;
 }
 function handleMoveClick(r,c) {
   const p=players[currentPlayerIdx];
-  if (!movingCells) {
-    if (p.grid[r][c]===null) { showStatus('Aucun bloc ici !'); return; }
-    movingCells = getConnected(r,c,p.grid[r][c],p.grid);
+  if(!movingCells){
+    if(p.grid[r][c]===null){showStatus('Aucun bloc ici !');return;}
+    const gid=p.grid[r][c].g;
+    movingCells=getConnectedByGid(r,c,gid,p.grid);
     movingCells.forEach(m=>{const el=$c(m.r,m.c);if(el){el.classList.remove('color-'+m.color);el.classList.add('move-source');}});
     showStatus(`Bloc (${movingCells.length} cases) — touchez la destination`);
   } else {
-    const dr=r-movingCells[0].r, dc=c-movingCells[0].c;
-    const tgt=movingCells.map(m=>({r:m.r+dr,c:m.c+dc,color:m.color}));
+    const dr=r-movingCells[0].r,dc=c-movingCells[0].c;
+    const tgt=movingCells.map(m=>({r:m.r+dr,c:m.c+dc,color:m.color,gid:m.gid}));
     const src=new Set(movingCells.map(m=>`${m.r},${m.c}`));
     let ok=true;
-    for(const t of tgt) {
+    for(const t of tgt){
       if(t.r<0||t.r>=GS||t.c<0||t.c>=GS){ok=false;break;}
       if(p.grid[t.r][t.c]!==null&&!src.has(`${t.r},${t.c}`)){ok=false;break;}
     }
-    if (!ok) { showStatus('Impossible !'); return; }
-    movingCells.forEach(m=>p.grid[m.r][m.c]=null);
-    tgt.forEach(t=>p.grid[t.r][t.c]=t.color);
+    if(!ok){showStatus('Impossible !');return;}
+    movingCells.forEach(m=>gClear(p.grid,m.r,m.c));
+    tgt.forEach(t=>gFill(p.grid,t.r,t.c,t.color,t.gid));
     movingCells=null; renderGrid(); showStatus('Pièce déplacée !');
-    if (window.innerWidth<=700) toggleMoveMode();
+    if(window.innerWidth<=700) toggleMoveMode();
   }
 }
 
@@ -770,51 +822,53 @@ function handleMoveClick(r,c) {
 // MODE PIVOTER PIÈCE POSÉE
 // ═══════════════════════════════════════════
 function toggleRotateMode() {
-  if (moveMode) toggleMoveMode();
+  if(moveMode)   toggleMoveMode();
+  if(deleteMode) toggleDeleteMode();
   rotateMode=!rotateMode;
-  document.getElementById('rotate-mode-btn').classList.toggle('active', rotateMode);
+  document.getElementById('rotate-mode-btn').classList.toggle('active',rotateMode);
   const ind=document.getElementById('mode-indicator');
-  ind.className = rotateMode ? 'mode-bar rotate-mode' : 'mode-bar';
-  ind.textContent = rotateMode ? '↻ PIVOT — touchez un bloc pour le faire pivoter' : '';
+  ind.className=rotateMode?'mode-bar rotate-mode':'mode-bar';
+  ind.textContent=rotateMode?'↻ PIVOT — touchez un bloc pour le faire pivoter':'';
   renderGrid();
 }
 function handleRotateClick(r,c) {
   const p=players[currentPlayerIdx];
-  if (p.grid[r][c]===null) { showStatus('Aucun bloc ici !'); return; }
-  const color=p.grid[r][c];
-  const cells=getConnected(r,c,color,p.grid);
-  if (!cells.length) return;
-  const minR=Math.min(...cells.map(m=>m.r)), minC=Math.min(...cells.map(m=>m.c));
-  const maxR=Math.max(...cells.map(m=>m.r)), maxC=Math.max(...cells.map(m=>m.c));
-  const h=maxR-minR+1, w=maxC-minC+1;
+  if(p.grid[r][c]===null){showStatus('Aucun bloc ici !');return;}
+  const cell=p.grid[r][c];
+  const gid=cell.g; const color=cell.c;
+  const cells=getConnectedByGid(r,c,gid,p.grid);
+  if(!cells.length) return;
+  const minR=Math.min(...cells.map(m=>m.r)),minC=Math.min(...cells.map(m=>m.c));
+  const maxR=Math.max(...cells.map(m=>m.r)),maxC=Math.max(...cells.map(m=>m.c));
+  const h=maxR-minR+1,w=maxC-minC+1;
   const local=Array(h).fill(null).map(()=>Array(w).fill(0));
   cells.forEach(m=>local[m.r-minR][m.c-minC]=1);
   const rotated=rotateMat(local);
-  const rH=rotated.length, rW=rotated[0].length;
-  let aR=minR, aC=minC;
+  const rH=rotated.length,rW=rotated[0].length;
+  let aR=minR,aC=minC;
   if(aR+rH>GS) aR=GS-rH; if(aC+rW>GS) aC=GS-rW;
   if(aR<0) aR=0; if(aC<0) aC=0;
   const newCells=[];
   for(let dr=0;dr<rH;dr++) for(let dc=0;dc<rW;dc++) if(rotated[dr][dc]) newCells.push({r:aR+dr,c:aC+dc});
   const srcSet=new Set(cells.map(m=>`${m.r},${m.c}`));
   let ok=true;
-  for(const nc2 of newCells) {
+  for(const nc2 of newCells){
     if(nc2.r<0||nc2.r>=GS||nc2.c<0||nc2.c>=GS){ok=false;break;}
     if(p.grid[nc2.r][nc2.c]!==null&&!srcSet.has(`${nc2.r},${nc2.c}`)){ok=false;break;}
   }
-  if (!ok) { showStatus('Impossible ! Pas de place pour pivoter.'); return; }
-  cells.forEach(m=>p.grid[m.r][m.c]=null);
-  newCells.forEach(nc2=>p.grid[nc2.r][nc2.c]=color);
+  if(!ok){showStatus('Impossible ! Pas de place pour pivoter.');return;}
+  cells.forEach(m=>gClear(p.grid,m.r,m.c));
+  newCells.forEach(nc2=>gFill(p.grid,nc2.r,nc2.c,color,gid));
   renderGrid(); showStatus('Pièce pivotée !');
-  if (window.innerWidth<=700) toggleRotateMode();
+  if(window.innerWidth<=700) toggleRotateMode();
 }
 
 // ═══════════════════════════════════════════
 // ANNULER
 // ═══════════════════════════════════════════
 function clearLastPlaced() {
-  if (!lastPlaced || lastPlaced.playerIdx!==currentPlayerIdx) return;
-  lastPlaced.cells.forEach(([r,c])=>players[lastPlaced.playerIdx].grid[r][c]=null);
+  if(!lastPlaced||lastPlaced.playerIdx!==currentPlayerIdx) return;
+  lastPlaced.cells.forEach(([r,c])=>gClear(players[lastPlaced.playerIdx].grid,r,c));
   players[lastPlaced.playerIdx].lastPieceId=null; lastPlaced=null; renderGrid();
 }
 
@@ -852,6 +906,7 @@ function renderTabs() {
 function switchPlayer(idx) {
   if(moveMode)   toggleMoveMode();
   if(rotateMode) toggleRotateMode();
+  if(deleteMode) toggleDeleteMode();
   currentPlayerIdx=idx; rotation=0; selectedPieceDef=null; movingCells=null;
   renderTabs(); renderGrid(); renderPiecesPanel(); updateStatusBar();
   document.getElementById('selected-piece-display').textContent='Touchez une pièce ↓';
@@ -875,13 +930,13 @@ function renderPiecesPanel() {
 function makePiecePreview(pd) {
   let shape=pd.shape;
   if(selectedPieceDef?.id===pd.id) for(let i=0;i<rotation;i++) shape=rotateMat(shape);
-  const R=shape.length, C=shape[0].length;
+  const R=shape.length,C=shape[0].length;
   const wrap=document.createElement('div'); wrap.title=pd.name;
   wrap.style.cssText='touch-action:none;user-select:none;-webkit-user-select:none;';
   const prev=document.createElement('div');
   prev.className='piece-preview'+(selectedPieceDef?.id===pd.id?' selected':'');
   prev.style.cssText=`display:grid;grid-template-columns:repeat(${C},16px);grid-template-rows:repeat(${R},16px);`;
-  for(let r=0;r<R;r++) for(let c=0;c<C;c++) {
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
     const cell=document.createElement('div');
     cell.className='p-cell'+(shape[r][c]?' on':'');
     if(shape[r][c]) cell.style.background=COLORS[pd.color];
@@ -891,41 +946,40 @@ function makePiecePreview(pd) {
   lbl.style.cssText='font-family:VT323,monospace;font-size:13px;text-align:center;color:#555;margin-top:2px;';
   lbl.textContent=pd.name;
   wrap.appendChild(prev); wrap.appendChild(lbl);
-  wrap.addEventListener('click', ()=>selectPiece(pd));
-  wrap.addEventListener('touchstart', e=>onPieceTouchStart(e,pd), {passive:false});
-  wrap.addEventListener('touchend',   ()=>clearTimeout(td.holdTimer), {passive:true});
-  wrap.addEventListener('touchcancel',()=>{ clearTimeout(td.holdTimer); removeTDGhost(); td.active=false; }, {passive:true});
+  wrap.addEventListener('click',()=>selectPiece(pd));
+  wrap.addEventListener('touchstart',e=>onPieceTouchStart(e,pd),{passive:false});
+  wrap.addEventListener('touchend',()=>clearTimeout(td.holdTimer),{passive:true});
+  wrap.addEventListener('touchcancel',()=>{clearTimeout(td.holdTimer);removeTDGhost();td.active=false;},{passive:true});
   return wrap;
 }
 function selectPiece(pd) {
   if(moveMode)   toggleMoveMode();
   if(rotateMode) toggleRotateMode();
+  if(deleteMode) toggleDeleteMode();
   selectedPieceDef=pd; rotation=0; renderPiecesPanel();
   document.getElementById('selected-piece-display').textContent=pd.name+' — '+pd.size+' fichier(s)';
   document.getElementById('status-piece').textContent='Sélectionné: '+pd.name;
 }
 
 // ═══════════════════════════════════════════
-// TOUCH DRAG — depuis le panneau pièces
+// TOUCH DRAG — panneau pièces
 // ═══════════════════════════════════════════
-function getCellSize() {
-  const el=document.querySelector('.cell'); return el ? el.offsetWidth : 46;
-}
+function getCellSize() { const el=document.querySelector('.cell'); return el?el.offsetWidth:46; }
 function getCellAt(x,y) {
   const els=document.elementsFromPoint(x,y);
   for(const el of els) if(el.classList&&el.classList.contains('cell'))
-    return {r:parseInt(el.dataset.r), c:parseInt(el.dataset.c)};
+    return {r:parseInt(el.dataset.r),c:parseInt(el.dataset.c)};
   return null;
 }
 function createTDGhost(pd) {
   let shape=pd.shape;
   for(let i=0;i<rotation;i++) shape=rotateMat(shape);
-  const R=shape.length, C=shape[0].length, cs=getCellSize();
+  const R=shape.length,C=shape[0].length,cs=getCellSize();
   const ghost=document.createElement('div');
   ghost.style.cssText=`position:fixed;z-index:9999;pointer-events:none;display:grid;grid-template-columns:repeat(${C},${cs}px);grid-template-rows:repeat(${R},${cs}px);gap:1px;opacity:0.8;`;
-  for(let r=0;r<R;r++) for(let c=0;c<C;c++) {
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
     const cell=document.createElement('div');
-    if(shape[r][c]) { cell.style.background=COLORS[pd.color]; cell.style.border='1px solid rgba(255,255,255,0.4)'; }
+    if(shape[r][c]){cell.style.background=COLORS[pd.color];cell.style.border='1px solid rgba(255,255,255,0.4)';}
     ghost.appendChild(cell);
   }
   document.body.appendChild(ghost);
@@ -944,51 +998,40 @@ function removeTDGhost() { if(td.ghost){td.ghost.remove();td.ghost=null;} }
 function onPieceTouchStart(e,pd) {
   e.preventDefault();
   const touch=e.touches[0];
-  // Double-tap → rotation
   const now=Date.now();
-  if(td.lastTap.id===pd.id && now-td.lastTap.time<400) {
-    td.lastTap={}; selectPiece(pd); rotateSelected(); return;
-  }
-  td.lastTap={id:pd.id, time:now};
+  if(td.lastTap.id===pd.id&&now-td.lastTap.time<400){td.lastTap={};selectPiece(pd);rotateSelected();return;}
+  td.lastTap={id:pd.id,time:now};
   selectPiece(pd);
-  // Long press (300ms) → active drag
   td.holdTimer=setTimeout(()=>{
-    td.active=true; td.piece=pd;
+    td.active=true;td.piece=pd;
     td.ghost=createTDGhost(pd);
-    moveTDGhost(touch.clientX, touch.clientY);
+    moveTDGhost(touch.clientX,touch.clientY);
     navigator.vibrate&&navigator.vibrate(40);
-  }, 300);
+  },300);
 }
-
-// Touch MOVE global — drag ghost
-document.addEventListener('touchmove', e=>{
+document.addEventListener('touchmove',e=>{
   if(!td.active||!td.ghost) return;
   e.preventDefault();
   const touch=e.touches[0];
-  moveTDGhost(touch.clientX, touch.clientY);
-  const cell=getCellAt(touch.clientX, touch.clientY);
-  if(cell&&(!td.lastCell||td.lastCell.r!==cell.r||td.lastCell.c!==cell.c)) {
-    td.lastCell=cell; clearHL(); hlPlace(cell.r, cell.c);
-  }
-}, {passive:false});
-
-// Touch END global — déposer la pièce
-document.addEventListener('touchend', e=>{
+  moveTDGhost(touch.clientX,touch.clientY);
+  const cell=getCellAt(touch.clientX,touch.clientY);
+  if(cell&&(!td.lastCell||td.lastCell.r!==cell.r||td.lastCell.c!==cell.c)){td.lastCell=cell;clearHL();hlPlace(cell.r,cell.c);}
+},{passive:false});
+document.addEventListener('touchend',e=>{
   clearTimeout(td.holdTimer);
-  if(td.active && td.ghost) {
+  if(td.active&&td.ghost){
     e.preventDefault();
     const touch=e.changedTouches[0];
-    const cell=getCellAt(touch.clientX, touch.clientY);
-    removeTDGhost(); clearHL();
-    if(cell) placePiece(cell.r, cell.c);
-    td.active=false; td.piece=null; td.lastCell=null;
+    const cell=getCellAt(touch.clientX,touch.clientY);
+    removeTDGhost();clearHL();
+    if(cell) placePiece(cell.r,cell.c);
+    td.active=false;td.piece=null;td.lastCell=null;
   }
-}, {passive:false});
-
-document.addEventListener('touchcancel', ()=>{
-  clearTimeout(td.holdTimer); clearTimeout(placedHoldTimer);
-  removeTDGhost(); clearHL();
-  td.active=false; td.piece=null; td.lastCell=null;
+},{passive:false});
+document.addEventListener('touchcancel',()=>{
+  clearTimeout(td.holdTimer);clearTimeout(placedHoldTimer);
+  removeTDGhost();clearHL();
+  td.active=false;td.piece=null;td.lastCell=null;
 });
 
 // ═══════════════════════════════════════════
@@ -996,96 +1039,74 @@ document.addEventListener('touchcancel', ()=>{
 // ═══════════════════════════════════════════
 function attachGridTouchEvents() {
   const grid=document.getElementById('disk-grid');
-
-  grid.addEventListener('touchstart', e=>{
+  grid.addEventListener('touchstart',e=>{
     if(td.active) return;
     const touch=e.touches[0];
-    const cell=getCellAt(touch.clientX, touch.clientY);
+    const cell=getCellAt(touch.clientX,touch.clientY);
     if(!cell) return;
     const p=players[currentPlayerIdx];
-
-    if(moveMode || rotateMode) {
-      // En mode move/rotate, simple tap suffit → géré par touchend
-      e.preventDefault(); return;
-    }
-
-    if(selectedPieceDef) {
-      // Pièce sélectionnée → simple tap suffit
-      e.preventDefault(); return;
-    }
-
-    // Cellule occupée sans mode actif → long press pour activer move/rotate
-    if(p.grid[cell.r][cell.c]!==null) {
+    if(moveMode||rotateMode||deleteMode){e.preventDefault();return;}
+    if(selectedPieceDef){e.preventDefault();return;}
+    if(p.grid[cell.r][cell.c]!==null){
       e.preventDefault();
       clearTimeout(placedHoldTimer);
-      const savedCell={r:cell.r,c:cell.c};
+      const saved={r:cell.r,c:cell.c};
       placedHoldTimer=setTimeout(()=>{
         navigator.vibrate&&navigator.vibrate(40);
-        // Affiche un mini-menu contextuel
-        showPlacedMenu(savedCell.r, savedCell.c, touch.clientX, touch.clientY);
-      }, 350);
+        showPlacedMenu(saved.r,saved.c,touch.clientX,touch.clientY);
+      },350);
     }
-  }, {passive:false});
-
-  grid.addEventListener('touchend', e=>{
+  },{passive:false});
+  grid.addEventListener('touchend',e=>{
     clearTimeout(placedHoldTimer);
     if(td.active) return;
     e.preventDefault();
     const touch=e.changedTouches[0];
-    const cell=getCellAt(touch.clientX, touch.clientY);
-    if(cell) onClick(cell.r, cell.c);
-  }, {passive:false});
-
-  grid.addEventListener('touchmove', e=>{
+    const cell=getCellAt(touch.clientX,touch.clientY);
+    if(cell) onClick(cell.r,cell.c);
+  },{passive:false});
+  grid.addEventListener('touchmove',e=>{
     clearTimeout(placedHoldTimer);
     if(td.active) return;
-    if(!selectedPieceDef && !moveMode && !rotateMode) return;
+    if(!selectedPieceDef&&!moveMode&&!deleteMode) return;
     e.preventDefault();
     const touch=e.touches[0];
-    const cell=getCellAt(touch.clientX, touch.clientY);
-    if(cell) {
+    const cell=getCellAt(touch.clientX,touch.clientY);
+    if(cell){
       if(moveMode&&movingCells) hlMoveTarget(cell.r,cell.c);
+      else if(deleteMode)       hlDeleteTarget(cell.r,cell.c);
       else if(selectedPieceDef) hlPlace(cell.r,cell.c);
     }
-  }, {passive:false});
+  },{passive:false});
 }
 
-// Mini menu contextuel pour pièces posées sur mobile
-function showPlacedMenu(r, c, x, y) {
+// Mini menu contextuel pièces posées (mobile)
+function showPlacedMenu(r,c,x,y) {
   document.getElementById('placed-menu')?.remove();
   const menu=document.createElement('div');
-  menu.id='placed-menu';
-  menu.style.cssText=`position:fixed;z-index:8000;background:var(--win-panel);border:3px solid var(--win-darker);box-shadow:3px 3px 0 rgba(0,0,0,0.5);font-family:VT323,monospace;font-size:20px;`;
-  // Titre
-  const title=document.createElement('div');
-  title.style.cssText='background:var(--win-title);color:#ede8ff;padding:4px 10px;font-size:17px;';
-  title.textContent='Action sur le bloc';
-  menu.appendChild(title);
-  // Boutons
-  const btnMove=document.createElement('button');
-  btnMove.className='action-btn'; btnMove.style.width='100%'; btnMove.style.justifyContent='center';
-  btnMove.textContent='✋ Déplacer';
-  btnMove.ontouchend=(ev)=>{ ev.preventDefault(); menu.remove(); toggleMoveMode(); handleMoveClick(r,c); };
-  const btnRot=document.createElement('button');
-  btnRot.className='action-btn'; btnRot.style.width='100%'; btnRot.style.justifyContent='center';
-  btnRot.textContent='↻ Pivoter';
-  btnRot.ontouchend=(ev)=>{ ev.preventDefault(); menu.remove(); toggleRotateMode(); handleRotateClick(r,c); };
-  const btnCancel=document.createElement('button');
-  btnCancel.className='action-btn danger'; btnCancel.style.width='100%'; btnCancel.style.justifyContent='center';
-  btnCancel.textContent='✕ Annuler';
-  btnCancel.ontouchend=(ev)=>{ ev.preventDefault(); menu.remove(); };
-  [btnMove,btnRot,btnCancel].forEach(b=>{ const w=document.createElement('div');w.style.padding='4px 6px';w.appendChild(b);menu.appendChild(w); });
-  // Position
-  const vw=window.innerWidth, vh=window.innerHeight;
-  const mw=200, mh=160;
-  menu.style.width=mw+'px';
-  const px=Math.min(Math.max(x-mw/2,4), vw-mw-4);
-  const py=Math.min(Math.max(y-mh-10,4), vh-mh-50);
-  menu.style.left=px+'px'; menu.style.top=py+'px';
+  menu.id='placed-menu'; menu.className='win';
+  menu.style.cssText='position:fixed;z-index:8000;width:200px;max-width:90vw;';
+  const tb=document.createElement('div'); tb.className='win-titlebar'; tb.style.cursor='default';
+  tb.innerHTML='<span class="win-title-text">🔧 Action</span><div class="win-controls"><div class="win-btn close" id="pmclose">✕</div></div>';
+  menu.appendChild(tb);
+  const mkBtn=(label,fn)=>{
+    const w=document.createElement('div'); w.style.padding='3px 6px';
+    const b=document.createElement('button'); b.className='action-btn';
+    b.style.cssText='width:100%;justify-content:center;'; b.textContent=label;
+    b.ontouchend=ev=>{ev.preventDefault();menu.remove();fn();};
+    b.onclick=fn; w.appendChild(b); menu.appendChild(w);
+  };
+  mkBtn('✋ Déplacer', ()=>{toggleMoveMode();handleMoveClick(r,c);});
+  mkBtn('↻ Pivoter',  ()=>{toggleRotateMode();handleRotateClick(r,c);});
+  mkBtn('🗑 Supprimer',()=>{toggleDeleteMode();handleDeleteClick(r,c);});
+  mkBtn('✕ Annuler',  ()=>{});
+  const vw=window.innerWidth,vh=window.innerHeight,mw=200,mh=180;
+  menu.style.left=Math.min(Math.max(x-mw/2,4),vw-mw-4)+'px';
+  menu.style.top =Math.min(Math.max(y-mh-10,4),vh-mh-50)+'px';
   document.body.appendChild(menu);
-  // Ferme si tap ailleurs
+  menu.querySelector('#pmclose').onclick=()=>menu.remove();
   setTimeout(()=>{
-    const close=(e)=>{ if(!menu.contains(e.target)){menu.remove();document.removeEventListener('touchstart',close);} };
+    const close=e=>{if(!menu.contains(e.target)){menu.remove();document.removeEventListener('touchstart',close);}};
     document.addEventListener('touchstart',close,{passive:true});
   },100);
 }
@@ -1098,7 +1119,7 @@ function runDefrag() {
   if(p.defragUsed){alert('DEFRAG déjà utilisé !');return;}
   if(!confirm('DEFRAG : perdre 5 fichiers ?')) return;
   let rem=0;
-  for(let r=0;r<GS&&rem<5;r++) for(let c=0;c<GS&&rem<5;c++) if(p.grid[r][c]!==null){p.grid[r][c]=null;rem++;}
+  for(let r=0;r<GS&&rem<5;r++) for(let c=0;c<GS&&rem<5;c++) if(p.grid[r][c]!==null){gClear(p.grid,r,c);rem++;}
   p.defragUsed=true; renderGrid(); updateStatusBar();
 }
 function toggleBackup() {
@@ -1114,166 +1135,108 @@ function updateStatusBar() {
 }
 
 // ═══════════════════════════════════════════
-// TOOLS — éclater / fusionner avec sélection
+// TOOLS
 // ═══════════════════════════════════════════
-
-// Trouve tous les blocs connectés de la grille, groupés par connexion
 function getAllBlocks() {
   const p=players[currentPlayerIdx];
   const visited=new Set(); const blocks=[];
-  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++) {
-    const k=`${r},${c}`;
-    if(p.grid[r][c]===null||visited.has(k)) continue;
-    const cells=getConnected(r,c,p.grid[r][c],p.grid);
+  for(let r=0;r<GS;r++) for(let c=0;c<GS;c++){
+    const cell=p.grid[r][c]; if(!cell) continue;
+    const k=`${r},${c}`; if(visited.has(k)) continue;
+    const cells=getConnectedByGid(r,c,cell.g,p.grid);
     cells.forEach(m=>visited.add(`${m.r},${m.c}`));
-    blocks.push({cells, size:cells.length, color:p.grid[r][c]});
+    blocks.push({cells,size:cells.length,color:cell.c,gid:cell.g});
   }
   return blocks;
 }
 
-// Affiche un sélecteur de blocs dans une popup Win95
-function showBlockPicker(title, filterFn, onSelect) {
+function showBlockPicker(title,filterFn,onSelect) {
   document.getElementById('block-picker')?.remove();
-  const p=players[currentPlayerIdx];
   const blocks=getAllBlocks().filter(filterFn);
-  if(!blocks.length){ alert('Aucun bloc éligible sur la grille !'); return; }
-
-  // Surligne les blocs éligibles temporairement
+  if(!blocks.length){alert('Aucun bloc éligible sur la grille !');return;}
   blocks.forEach(b=>b.cells.forEach(m=>{const el=$c(m.r,m.c);if(el)el.classList.add('highlight');}));
-
-  const win=document.createElement('div');
-  win.id='block-picker';
-  win.className='win';
+  const win=document.createElement('div'); win.id='block-picker'; win.className='win';
   win.style.cssText='position:fixed;z-index:7000;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;max-width:90vw;';
-
-  const tb=document.createElement('div'); tb.className='win-titlebar';
-  tb.innerHTML=`<span class="win-title-text">🔧 ${title}</span>`;
-  const xbtn=document.createElement('div'); xbtn.className='win-btn close';
-  xbtn.textContent='✕'; xbtn.onclick=()=>{ clearHL(); win.remove(); };
-  tb.querySelector('.win-title-text').after(xbtn); // fix: use controls div
-  tb.style.justifyContent='space-between'; tb.style.cursor='default';
-  // Rebuild titlebar properly
-  win.innerHTML='';
-  const tb2=document.createElement('div'); tb2.className='win-titlebar'; tb2.style.cursor='default';
-  tb2.innerHTML=`<span class="win-title-text">🔧 ${title}</span><div class="win-controls"><div class="win-btn close" id="bpclose">✕</div></div>`;
-  win.appendChild(tb2);
-
+  const tb=document.createElement('div'); tb.className='win-titlebar'; tb.style.cursor='default';
+  tb.innerHTML=`<span class="win-title-text">🔧 ${title}</span><div class="win-controls"><div class="win-btn close" id="bpclose">✕</div></div>`;
+  win.appendChild(tb);
   const body=document.createElement('div');
   body.style.cssText='padding:8px;background:var(--win-content);max-height:60vh;overflow-y:auto;';
   const hint=document.createElement('div');
   hint.style.cssText='font-family:VT323,monospace;font-size:15px;color:#5a2d82;margin-bottom:8px;';
-  hint.textContent='Sélectionnez un bloc :';
-  body.appendChild(hint);
-
+  hint.textContent='Sélectionnez un bloc :'; body.appendChild(hint);
   blocks.forEach((b,i)=>{
-    const btn=document.createElement('button');
-    btn.className='action-btn';
+    const btn=document.createElement('button'); btn.className='action-btn';
     btn.style.cssText='width:100%;justify-content:flex-start;margin-bottom:4px;font-size:16px;';
-    // Mini preview couleur
     const swatch=document.createElement('span');
     swatch.style.cssText=`display:inline-block;width:14px;height:14px;background:${COLORS[b.color]};border:1px solid rgba(0,0,0,0.3);margin-right:6px;flex-shrink:0;`;
     btn.appendChild(swatch);
     btn.appendChild(document.createTextNode(`Bloc ${i+1} — ${b.size} case${b.size>1?'s':''}`));
-    btn.onclick=()=>{ clearHL(); win.remove(); onSelect(b); };
-    btn.ontouchend=(ev)=>{ ev.preventDefault(); btn.onclick(); };
+    btn.onclick=()=>{clearHL();win.remove();onSelect(b);};
+    btn.ontouchend=ev=>{ev.preventDefault();btn.onclick();};
     body.appendChild(btn);
   });
-  win.appendChild(body);
-  document.body.appendChild(win);
-  win.querySelector('#bpclose').onclick=()=>{ clearHL(); win.remove(); };
+  win.appendChild(body); document.body.appendChild(win);
+  win.querySelector('#bpclose').onclick=()=>{clearHL();win.remove();};
 }
 
-// ════════════════════════════════════════════════════════
-// TOOLS — placement libre après craft
-// ════════════════════════════════════════════════════════
-
-// État du mode "craft placement" : pièces à poser une par une
-let craftQueue = [];   // [{color, shape}] pièces à placer
-let craftMode  = false;
-
+// Craft mode
 function startCraftPlacement(pieces) {
-  // pieces = tableau de {color, shape (matrice)} à placer librement
-  craftQueue = [...pieces];
-  craftMode  = true;
-  selectedPieceDef = null;
+  craftQueue=[...pieces]; craftMode=true; selectedPieceDef=null;
   placeCraftNext();
 }
-
 function placeCraftNext() {
-  if (!craftQueue.length) {
-    craftMode = false;
-    renderGrid();
+  if(!craftQueue.length){
+    craftMode=false; renderGrid();
+    // Nettoie la barre de mode
+    const ind=document.getElementById('mode-indicator');
+    ind.className='mode-bar'; ind.textContent='';
     showStatus('✅ Toutes les pièces craftées ont été placées !');
     return;
   }
-  const next = craftQueue[0];
-  // Crée une pieceDef temporaire pour utiliser le système de placement existant
-  selectedPieceDef = {
-    id: '__craft__',
-    name: 'Pièce craftée',
-    size: next.shape.flat().filter(v=>v).length,
-    shape: next.shape,
-    color: next.color,
-    _craftColor: next.color
-  };
-  rotation = 0;
-  renderPiecesPanel();
-  const remain = craftQueue.length;
-  document.getElementById('selected-piece-display').textContent =
-    `🔧 Craft : placez la pièce (${remain} restante${remain>1?'s':''})`;
-  showStatus(`🔧 Placez la pièce craftée sur la grille (${remain} restante${remain>1?'s':''})`);
-  // Affiche le mode dans la barre
-  const ind = document.getElementById('mode-indicator');
-  ind.className = 'mode-bar move-mode';
-  ind.textContent = `🔧 MODE CRAFT — placez la pièce (${remain} restante${remain>1?'s':''}) — ↻ Rotation disponible`;
+  const next=craftQueue[0];
+  selectedPieceDef={id:'__craft__',name:'Pièce craftée',size:next.shape.flat().filter(v=>v).length,shape:next.shape,color:next.color,_craftColor:next.color};
+  rotation=0; renderPiecesPanel();
+  const remain=craftQueue.length;
+  document.getElementById('selected-piece-display').textContent=`🔧 Craft : placez la pièce (${remain} restante${remain>1?'s':''})`;
+  showStatus(`🔧 Placez la pièce craftée (${remain} restante${remain>1?'s':''})`);
+  const ind=document.getElementById('mode-indicator');
+  ind.className='mode-bar move-mode';
+  ind.textContent=`🔧 MODE CRAFT — placez la pièce (${remain} restante${remain>1?'s':''})`;
 }
 
-// ── CRAFT 1 : 1×5 → 5×1 (diviser un bloc de 5 en 5 cases de 1) ──
-// Condition : au moins 1 bloc de taille exactement 5 sur la grille.
+// 1×5 → 5×1 (diviser)
 function exchange5to1() {
-  const fives = getAllBlocks().filter(b => b.size === 5);
-  if (!fives.length) {
-    showStatus('❌ Craft impossible : aucun bloc de 5 sur la grille !');
-    return;
-  }
-  showBlockPicker('Diviser : choisir un bloc de 5', b => b.size === 5, (b) => {
-    const p = players[currentPlayerIdx];
-    // Retire le bloc
-    b.cells.forEach(m => p.grid[m.r][m.c] = null);
+  const fives=getAllBlocks().filter(b=>b.size===5);
+  if(!fives.length){showStatus('❌ Craft impossible : aucun bloc de 5 sur la grille !');return;}
+  showBlockPicker('Diviser : choisir un bloc de 5',b=>b.size===5,(b)=>{
+    const p=players[currentPlayerIdx];
+    b.cells.forEach(m=>gClear(p.grid,m.r,m.c));
     renderGrid();
-    showStatus('🔧 Bloc de 5 retiré — placez les 5 cases de 1 une par une');
-    // 5 pièces de 1 case à placer librement
-    const pieces = Array(5).fill(null).map(() => ({ color: 0, shape: [[1]] }));
-    startCraftPlacement(pieces);
+    showStatus('🔧 Bloc de 5 retiré — placez les 5 cases de 1');
+    startCraftPlacement(Array(5).fill(null).map(()=>({color:0,shape:[[1]]})));
   });
 }
 
-// ── CRAFT 2 : 2×5 → 1×10 (fusionner deux blocs de 5 en un ten_I) ──
-// Condition : au moins 2 blocs de taille 5 sur la grille.
+// 2×5 → 1×10 (fusionner)
 function exchange2to1() {
-  const p = players[currentPlayerIdx];
-  const fives = getAllBlocks().filter(b => b.size === 5);
-  if (fives.length < 2) {
-    showStatus('❌ Craft impossible : il faut au moins 2 blocs de 5 !');
-    return;
-  }
-  let b1 = null;
-  showBlockPicker('Fusionner : choisir 1er bloc de 5', b => b.size === 5, (first) => {
-    b1 = first;
-    b1.cells.forEach(m => { const el=$c(m.r,m.c); if(el) el.style.outline='3px solid #e0a800'; });
-    const b1key = b1.cells.map(m=>`${m.r},${m.c}`).join('|');
-    showBlockPicker(
-      'Fusionner : choisir 2ème bloc de 5',
-      b => b.size === 5 && b.cells.map(m=>`${m.r},${m.c}`).join('|') !== b1key,
-      (b2) => {
-        b1.cells.forEach(m => { const el=$c(m.r,m.c); if(el) el.style.outline=''; });
-        // Retire les deux blocs
-        b1.cells.forEach(m => p.grid[m.r][m.c] = null);
-        b2.cells.forEach(m => p.grid[m.r][m.c] = null);
+  const p=players[currentPlayerIdx];
+  const fives=getAllBlocks().filter(b=>b.size===5);
+  if(fives.length<2){showStatus('❌ Craft impossible : il faut au moins 2 blocs de 5 !');return;}
+  let b1=null;
+  showBlockPicker('Fusionner : choisir 1er bloc de 5',b=>b.size===5,(first)=>{
+    b1=first;
+    b1.cells.forEach(m=>{const el=$c(m.r,m.c);if(el)el.style.outline='3px solid #e0a800';});
+    const b1key=b1.cells.map(m=>`${m.r},${m.c}`).join('|');
+    showBlockPicker('Fusionner : choisir 2ème bloc de 5',
+      b=>b.size===5&&b.cells.map(m=>`${m.r},${m.c}`).join('|')!==b1key,
+      (b2)=>{
+        b1.cells.forEach(m=>{const el=$c(m.r,m.c);if(el)el.style.outline='';});
+        b1.cells.forEach(m=>gClear(p.grid,m.r,m.c));
+        b2.cells.forEach(m=>gClear(p.grid,m.r,m.c));
         renderGrid();
         showStatus('🔧 2 blocs de 5 retirés — placez le bloc de 10');
-        // 1 pièce ten_I (1×10 horizontal) à placer librement, color 4 = bleu-vert
-        startCraftPlacement([{ color: 4, shape: [[1,1,1,1,1,1,1,1,1,1]] }]);
+        startCraftPlacement([{color:4,shape:[[1,1,1,1,1,1,1,1,1,1]]}]);
       }
     );
   });
@@ -1285,10 +1248,10 @@ function exchange2to1() {
 function clearCurrentDisk() {
   if(!confirm('Vider la disquette ?')) return;
   const p=players[currentPlayerIdx];
-  p.grid=Array(GS).fill(null).map(()=>Array(GS).fill(null));
-  p.score=0; lastPlaced=null;
+  p.grid=emptyGrid(); p.score=0; lastPlaced=null;
   if(moveMode)   toggleMoveMode();
   if(rotateMode) toggleRotateMode();
+  if(deleteMode) toggleDeleteMode();
   renderGrid();
 }
 function checkVictory() {
@@ -1304,7 +1267,7 @@ function checkVictory() {
 function showStatus(msg) {
   document.getElementById('status-piece').textContent=msg;
   setTimeout(()=>{
-    if(!moveMode&&!rotateMode)
+    if(!moveMode&&!rotateMode&&!deleteMode)
       document.getElementById('status-piece').textContent=
         selectedPieceDef?'Sélectionné: '+selectedPieceDef.name:'Aucune pièce sélectionnée';
   },2500);
@@ -1312,13 +1275,14 @@ function showStatus(msg) {
 function resetAll() {
   if(moveMode)   toggleMoveMode();
   if(rotateMode) toggleRotateMode();
-  players=players.map(p=>createPlayer(p.name)); lastPlaced=null; selectedPieceDef=null; rotation=0;
+  if(deleteMode) toggleDeleteMode();
+  players=players.map(p=>createPlayer(p.name)); lastPlaced=null; selectedPieceDef=null; rotation=0; craftMode=false; craftQueue=[];
   document.getElementById('victory-modal').classList.remove('show');
   renderTabs(); renderGrid(); renderPiecesPanel(); renderAllScores(); updateStatusBar();
 }
 
 // ═══════════════════════════════════════════
-// HORLOGE + DRAG FENÊTRE (desktop)
+// HORLOGE + DRAG FENÊTRE
 // ═══════════════════════════════════════════
 function updateClock() {
   const n=new Date();
@@ -1337,11 +1301,11 @@ function makeDraggable(win,handle) {
 // MOBILE — taille dynamique des cellules
 // ═══════════════════════════════════════════
 function applyMobileGrid() {
-  const isMobile = window.innerWidth<=700;
+  const isMobile=window.innerWidth<=700;
   const grid=document.getElementById('disk-grid');
   if(isMobile){
     const available=window.innerWidth-10-16-20;
-    const cs=Math.max(18, Math.min(Math.floor((available-13)/12), 46));
+    const cs=Math.max(18,Math.min(Math.floor((available-13)/12),46));
     grid.style.gridTemplateColumns=`repeat(12,${cs}px)`;
     grid.style.gridTemplateRows=`repeat(12,${cs}px)`;
     document.querySelectorAll('.cell').forEach(c=>{c.style.width=cs+'px';c.style.height=cs+'px';});
@@ -1355,7 +1319,7 @@ function applyMobileGrid() {
     document.querySelectorAll('.coord-y').forEach(c=>c.style.height='46px');
   }
 }
-window.addEventListener('resize', applyMobileGrid);
+window.addEventListener('resize',applyMobileGrid);
 
 // ═══════════════════════════════════════════
 // INIT
@@ -1364,11 +1328,10 @@ function init() {
   buildGrid();
   players=[createPlayer('Joueur 1')];
   renderTabs(); renderGrid(); renderPiecesPanel(); renderAllScores(); updateStatusBar();
-  makeDraggable(document.getElementById('win-main'), document.getElementById('main-titlebar'));
-  makeDraggable(document.getElementById('win-info'), document.getElementById('info-titlebar'));
+  makeDraggable(document.getElementById('win-main'),document.getElementById('main-titlebar'));
+  makeDraggable(document.getElementById('win-info'),document.getElementById('info-titlebar'));
   attachGridTouchEvents();
   applyMobileGrid();
-  // Désactive zoom double-tap sur les boutons (iOS)
   document.querySelectorAll('.action-btn,.add-player-btn,.player-tab').forEach(el=>{
     el.addEventListener('touchend',e=>e.preventDefault(),{passive:false});
   });
